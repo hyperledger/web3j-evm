@@ -11,3 +11,8 @@ Everything runs within the JVM process, including EVM bytecode, which allows for
 ## How to use
 
 This project is currently under heavy development, and we'll update this section shortly.
+
+Below is a simple demo that shows that we can do ETH transactions, contract deployment and simple contract interactions.
+Using the ConsoleDebugTracer, we're able to step through the EVM bytecode and inspect the stack.
+
+![](https://raw.githubusercontent.com/web3j/evm/master/resources/web3j-evm-demo.gif)
