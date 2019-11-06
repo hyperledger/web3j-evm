@@ -1,7 +1,6 @@
 package org.web3j.evm
 
 import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.hyperledger.besu.config.GenesisConfigFile
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptLogResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptResult
@@ -9,7 +8,6 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionRec
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
-import org.hyperledger.besu.ethereum.chain.BlockchainStorage
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
@@ -21,22 +19,15 @@ import org.hyperledger.besu.ethereum.vm.BlockHashLookup
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.worldstate.DefaultMutableWorldState
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
-import org.hyperledger.besu.ethereum.worldstate.WorldStatePreimageStorage
-import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
-import org.hyperledger.besu.plugin.services.MetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
 import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.TransactionReceipt
-
 import java.math.BigInteger
-import java.util.Collections
-import java.util.Optional
-import java.util.OptionalInt
-import java.util.stream.Collectors
+import java.util.*
 
 class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
@@ -113,13 +104,13 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
 
     fun processTransaction(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): String {
         val transaction = Transaction.builder()
-            .gasLimit(hexToULong(web3jTransaction.gas))
+            .gasLimit(transactionGasLimitOrDefault(web3jTransaction))
             .gasPrice(Wei.of(hexToULong(web3jTransaction.gasPrice)))
             .nonce(hexToULong(web3jTransaction.nonce))
             .sender(Address.fromHexString(web3jTransaction.from))
             .to(Address.fromHexString(web3jTransaction.to))
             .payload(BytesValue.fromHexString(web3jTransaction.data))
-            .value(Wei.of(UInt256.fromHexString(web3jTransaction.value)))
+            .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
             .build()
 
         return processTransaction(transaction)
@@ -248,23 +239,26 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
         }
     }
 
-    fun ethCall(
+    fun makeEthCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
         defaultBlockParameter: DefaultBlockParameter
-    ): String {
+    ): TransactionProcessor.Result? {
         val nonce = if (web3jTransaction.nonce == null)
-            getTransactionCount(org.web3j.abi.datatypes.Address(web3jTransaction.from), DefaultBlockParameterName.PENDING).toLong()
+            getTransactionCount(
+                org.web3j.abi.datatypes.Address(web3jTransaction.from),
+                DefaultBlockParameterName.PENDING
+            ).toLong()
         else
             hexToULong(web3jTransaction.nonce)
 
         val transaction = Transaction.builder()
+            .gasLimit(transactionGasLimitOrDefault(web3jTransaction))
             // TODO: Better management of defaults..
-            .gasLimit(if (web3jTransaction.gas == null) 10_000_000L else hexToULong(web3jTransaction.gas))
             .gasPrice(if (web3jTransaction.gas == null) Wei.of(1) else Wei.of(hexToULong(web3jTransaction.gasPrice)))
             .nonce(nonce)
             .sender(Address.fromHexString(web3jTransaction.from))
             .to(Address.fromHexString(web3jTransaction.to))
-            .payload(BytesValue.fromHexString(web3jTransaction.data))
+            .payload(if (web3jTransaction.data == null) BytesValue.EMPTY else BytesValue.fromHexString(web3jTransaction.data))
             .value(if (web3jTransaction.value == null) Wei.ZERO else Wei.of(UInt256.fromHexString(web3jTransaction.value)))
             .build()
 
@@ -281,8 +275,25 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
             isPersistingState
         )
 
+        return result
+    }
+
+    fun ethCall(
+        web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
+        defaultBlockParameter: DefaultBlockParameter
+    ): String {
         // TODO error case..? See EthCall in Besu..
-        return result.output.hexString
+        return makeEthCall(web3jTransaction, defaultBlockParameter)!!.output.hexString
+    }
+
+    fun estimateGas(
+        web3jTransaction: org.web3j.protocol.core.methods.request.Transaction
+    ): String {
+        val gasLimit = transactionGasLimitOrDefault(web3jTransaction);
+        val result = makeEthCall(web3jTransaction, DefaultBlockParameter.valueOf("latest"))
+        val gasUse = gasLimit - result!!.gasRemaining
+
+        return longToHex(gasUse)
     }
 
     companion object {
@@ -290,6 +301,15 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
 
         private fun hexToULong(hex: String): Long {
             return UInt256.fromHexString(hex).toLong()
+        }
+
+        private fun longToHex(value: Long): String {
+            return UInt256.of(value).toHexString()
+        }
+
+        private fun transactionGasLimitOrDefault(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): Long {
+            // TODO: Verify happy with default value..
+            return if (web3jTransaction.gas == null) 10_000_000L else hexToULong(web3jTransaction.gas)
         }
     }
 }
