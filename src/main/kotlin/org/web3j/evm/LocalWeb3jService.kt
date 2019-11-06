@@ -2,7 +2,6 @@ package org.web3j.evm
 
 import io.reactivex.Flowable
 import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService
@@ -15,7 +14,6 @@ import org.web3j.protocol.core.methods.response.*
 import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
-
 import java.io.IOException
 import java.math.BigInteger
 import java.util.concurrent.CompletableFuture
@@ -44,7 +42,7 @@ class LocalWeb3jService(selfAddress: Address, operationTracer: OperationTracer) 
             "eth_compileLLL" -> throw UnsupportedOperationException(request.method)
             "eth_compileSerpent" -> throw UnsupportedOperationException(request.method)
             "eth_compileSolidity" -> throw UnsupportedOperationException(request.method)
-            "eth_estimateGas" -> throw UnsupportedOperationException(request.method)
+            "eth_estimateGas" -> estimateGas(request.params)
             "eth_gasPrice" -> ethGasPrice()
             "eth_getBalance" -> throw UnsupportedOperationException(request.method)
             "eth_getBlockByHash" -> throw UnsupportedOperationException(request.method)
@@ -164,6 +162,17 @@ class LocalWeb3jService(selfAddress: Address, operationTracer: OperationTracer) 
         val result = localEthereum.ethCall(transaction, defaultBlockParameter)
 
         return object : EthCall() {
+            override fun getResult(): String {
+                return result
+            }
+        }
+    }
+
+    private fun estimateGas(params: List<*>): Response<String> {
+        val transaction = params[0] as Transaction
+        val result = localEthereum.estimateGas(transaction)
+
+        return object : EthEstimateGas() {
             override fun getResult(): String {
                 return result
             }
