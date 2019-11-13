@@ -2,10 +2,7 @@ package org.web3j.evm
 
 import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.config.GenesisConfigFile
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptLogResult
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptResult
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.*
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
@@ -25,6 +22,7 @@ import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import java.math.BigInteger
 import java.util.*
@@ -40,6 +38,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
     private val blockHeaderFunctions: BlockHeaderFunctions
     private val miningBeneficiary: Address
     private val isPersistingState: Boolean
+    private val blockResultFactory: BlockResultFactory
 
     init {
         val chainId = Optional.empty<BigInteger>()
@@ -100,6 +99,8 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
         miningBeneficiary = Address.ZERO
 
         isPersistingState = true
+
+        blockResultFactory = BlockResultFactory()
     }
 
     fun processTransaction(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): String {
@@ -156,7 +157,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
 
     fun getTransactionCount(
         w3jAddress: org.web3j.abi.datatypes.Address,
-        defaultBlockParameterName: DefaultBlockParameterName
+        @Suppress("UNUSED_PARAMETER") defaultBlockParameterName: DefaultBlockParameterName
     ): BigInteger {
         val address = Address.fromHexString(w3jAddress.value)
         val account = worldState.get(address)
@@ -241,7 +242,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
 
     fun makeEthCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
-        defaultBlockParameter: DefaultBlockParameter
+        @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String
     ): TransactionProcessor.Result? {
         val nonce = if (web3jTransaction.nonce == null)
             getTransactionCount(
@@ -280,7 +281,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
 
     fun ethCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
-        defaultBlockParameter: DefaultBlockParameter
+        defaultBlockParameter: String
     ): String {
         // TODO error case..? See EthCall in Besu..
         return makeEthCall(web3jTransaction, defaultBlockParameter)!!.output.hexString
@@ -290,10 +291,119 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction
     ): String {
         val gasLimit = transactionGasLimitOrDefault(web3jTransaction);
-        val result = makeEthCall(web3jTransaction, DefaultBlockParameter.valueOf("latest"))
+        val result = makeEthCall(web3jTransaction, "latest")
         val gasUse = gasLimit - result!!.gasRemaining
 
         return longToHex(gasUse)
+    }
+
+    fun ethBlockNumber(): String {
+        return longToHex(blockchainQueries.headBlockNumber())
+    }
+
+    fun ethGetBalance(
+        w3jAddress: org.web3j.abi.datatypes.Address,
+        @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String
+    ): String? {
+        return blockchainQueries
+            .accountBalance(Address.fromHexString(w3jAddress.value), blockchainQueries.headBlockNumber())
+            .map(Wei::toHexString)
+            .orElse(null)
+    }
+
+    fun ethBlockByHash(hash: String, fullTransactionObjects: Boolean): EthBlock.Block? {
+        val maybeBlockResult = if (fullTransactionObjects)
+            blockchainQueries.blockByHashWithTxHashes(Hash.fromHexString(hash))
+                .map { tx -> blockResultFactory.transactionHash(tx) }
+        else
+            blockchainQueries.blockByHash(Hash.fromHexString(hash))
+                .map { tx -> blockResultFactory.transactionComplete(tx) }
+
+        return maybeBlockResult.map { br -> ethBlockByBlockResult(br, fullTransactionObjects) }.orElse(null)
+    }
+
+    fun ethBlockByNumber(blockNumber: String, fullTransactionObjects: Boolean): EthBlock.Block? {
+        val maybeBlockResult = if (fullTransactionObjects)
+            blockchainQueries.blockByNumberWithTxHashes(hexToULong(blockNumber))
+                .map { tx -> blockResultFactory.transactionHash(tx) }
+        else
+            blockchainQueries.blockByNumber(hexToULong(blockNumber))
+                .map { tx -> blockResultFactory.transactionComplete(tx) }
+
+        return maybeBlockResult.map { br -> ethBlockByBlockResult(br, fullTransactionObjects) }.orElse(null)
+    }
+
+    private fun ethBlockFullTransactionObject(blockResult: BlockResult): List<EthBlock.TransactionObject> {
+        return blockResult.transactions.map {
+            val tcr = it as TransactionCompleteResult
+            EthBlock.TransactionObject(
+                tcr.hash,
+                tcr.nonce,
+                tcr.blockHash,
+                tcr.blockNumber,
+                tcr.transactionIndex,
+                tcr.from,
+                tcr.to,
+                tcr.value,
+                tcr.gasPrice,
+                tcr.gas,
+                tcr.input,
+                null, // TODO?
+                null, // TODO?
+                null, // TODO?
+                tcr.r,
+                tcr.s,
+                hexToULong(tcr.v).toInt()
+            )
+        }
+    }
+
+    private fun ethBlockTransactionHash(blockResult: BlockResult): List<EthBlock.TransactionHash> {
+        return blockResult.transactions.map {
+            val thr = it as TransactionHashResult
+            EthBlock.TransactionHash(
+                thr.hash
+            )
+        }
+    }
+
+    private fun ethBlockByBlockResult(blockResult: BlockResult, fullTransactionObjects: Boolean): EthBlock.Block? {
+        val transactionResults = if (fullTransactionObjects)
+            ethBlockFullTransactionObject(blockResult)
+        else
+            ethBlockTransactionHash(blockResult)
+
+        return EthBlock.Block(
+            blockResult.number,
+            blockResult.hash,
+            blockResult.parentHash,
+            blockResult.nonce,
+            blockResult.sha3Uncles,
+            blockResult.logsBloom,
+            blockResult.transactionsRoot,
+            blockResult.stateRoot,
+            blockResult.receiptsRoot,
+            null, // TODO?
+            blockResult.miner,
+            null, // TODO?
+            blockResult.difficulty,
+            blockResult.totalDifficulty,
+            blockResult.extraData,
+            blockResult.size,
+            blockResult.gasLimit,
+            blockResult.gasUsed,
+            blockResult.timestamp,
+            transactionResults,
+            null, // TODO?
+            null // TODO?
+        )
+    }
+
+    fun ethGetCode(w3jAddress: org.web3j.abi.datatypes.Address, @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String): String {
+        return blockchainQueries
+            .getCode(Address.fromHexString(w3jAddress.value), blockchainQueries.headBlockNumber())
+            .map(BytesValue::toString)
+            .orElse(null)
     }
 
     companion object {
