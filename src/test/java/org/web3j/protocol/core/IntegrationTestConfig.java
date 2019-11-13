@@ -12,6 +12,7 @@
  */
 package org.web3j.protocol.core;
 
+import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.request.Transaction;
 
 import java.math.BigInteger;
@@ -31,11 +32,13 @@ public interface IntegrationTestConfig {
 
     String validContractAddress();
 
+    BigInteger validContractBlock();
+
     String validContractAddressPositionZero();
 
     String validContractCode();
 
-    Transaction buildTransaction();
+    Transaction buildTransaction(Web3j web3j) throws Exception;
 
     String validTransactionHash();
 
