@@ -18,11 +18,14 @@ public class Demo {
         Credentials credentials = WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
 
         // If you don't want console debugging, use PassthroughTracer instead..
-        final OperationTracer operationTracer = new ConsoleDebugTracer();
-        //final OperationTracer operationTracer = new PassthroughTracer();
+        OperationTracer operationTracer = new ConsoleDebugTracer();
+        //OperationTracer operationTracer = new PassthroughTracer();
 
         // We use LocalWeb3jService rather than the usual service implementation..
         Web3j web3j = Web3j.build(new LocalWeb3jService(new Address(credentials.getAddress()), operationTracer));
+
+        // Transaction etherTransaction = Transaction.createEtherTransaction(credentials.getAddress(), BigInteger.ZERO, BigInteger.ONE, BigInteger.valueOf(1_000_000), "0x2dfBf35bb7c3c0A466A6C48BEBf3eF7576d3C420", Convert.toWei("1", Convert.Unit.ETHER).toBigInteger());
+        // BigInteger gasUsed = web3j.ethEstimateGas(etherTransaction).send().getAmountUsed();
 
         // First run a simple ETH transfer transaction..
         System.out.println("Starting simple ETH transfer transaction");

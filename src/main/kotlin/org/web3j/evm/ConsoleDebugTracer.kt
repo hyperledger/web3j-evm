@@ -173,12 +173,8 @@ class ConsoleDebugTracer(private val reader: BufferedReader) : OperationTracer {
         private const val FULL_WIDTH = OP_CODES_WIDTH + 77
         private const val NUMBER_FORMAT = "0x%08x"
 
-        private fun cleanString(s: String): String {
-            var s = s
-            for (terminal in TERMINAL.values()) {
-                s = s.replace(terminal.toString(), "")
-            }
-            return s
+        private fun cleanString(input: String): String {
+            return TERMINAL.values().fold(input) { output, t -> output.replace(t.toString(), "") }
         }
     }
 }
