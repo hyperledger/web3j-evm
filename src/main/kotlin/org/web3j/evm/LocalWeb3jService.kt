@@ -1,6 +1,21 @@
+/*
+ * Copyright 2019 Web3 Labs Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.web3j.evm
 
 import io.reactivex.Flowable
+import java.io.IOException
+import java.math.BigInteger
+import java.util.concurrent.CompletableFuture
 import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.web3j.abi.datatypes.Address
@@ -9,13 +24,23 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.Transaction
-import org.web3j.protocol.core.methods.response.*
+import org.web3j.protocol.core.methods.response.EthBlock
+import org.web3j.protocol.core.methods.response.EthBlockNumber
+import org.web3j.protocol.core.methods.response.EthCall
+import org.web3j.protocol.core.methods.response.EthEstimateGas
+import org.web3j.protocol.core.methods.response.EthGasPrice
+import org.web3j.protocol.core.methods.response.EthGetBalance
+import org.web3j.protocol.core.methods.response.EthGetCode
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount
+import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt
+import org.web3j.protocol.core.methods.response.EthSendTransaction
+import org.web3j.protocol.core.methods.response.EthSyncing
+import org.web3j.protocol.core.methods.response.NetVersion
+import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.protocol.core.methods.response.Web3ClientVersion
 import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
-import java.io.IOException
-import java.math.BigInteger
-import java.util.concurrent.CompletableFuture
 
 class LocalWeb3jService(selfAddress: Address, operationTracer: OperationTracer) : Web3jService {
     private val localEthereum: LocalEthereum = LocalEthereum(selfAddress, operationTracer)
@@ -263,7 +288,6 @@ class LocalWeb3jService(selfAddress: Address, operationTracer: OperationTracer) 
 
     @Throws(IOException::class)
     override fun close() {
-
     }
 
     companion object {
