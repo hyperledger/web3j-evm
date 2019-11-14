@@ -1,15 +1,50 @@
+/*
+ * Copyright 2019 Web3 Labs Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.web3j.evm
 
+import java.math.BigInteger
+import java.util.Optional
+import java.util.OptionalInt
 import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.config.GenesisConfigFile
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.*
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResultFactory
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionCompleteResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionHashResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptLogResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
-import org.hyperledger.besu.ethereum.core.*
-import org.hyperledger.besu.ethereum.mainnet.*
+import org.hyperledger.besu.ethereum.core.Address
+import org.hyperledger.besu.ethereum.core.Block
+import org.hyperledger.besu.ethereum.core.BlockBody
+import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder
+import org.hyperledger.besu.ethereum.core.BlockHeaderFunctions
+import org.hyperledger.besu.ethereum.core.Hash
+import org.hyperledger.besu.ethereum.core.PrivacyParameters
+import org.hyperledger.besu.ethereum.core.Transaction
+import org.hyperledger.besu.ethereum.core.Wei
+import org.hyperledger.besu.ethereum.mainnet.MainnetBlockProcessor
+import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
+import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSpecs
+import org.hyperledger.besu.ethereum.mainnet.MainnetTransactionValidator
+import org.hyperledger.besu.ethereum.mainnet.TransactionProcessor
+import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStorageProvider
 import org.hyperledger.besu.ethereum.vm.BlockHashLookup
@@ -20,12 +55,9 @@ import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
 import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
-import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
-import java.math.BigInteger
-import java.util.*
 
 class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
@@ -290,7 +322,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
     fun estimateGas(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction
     ): String {
-        val gasLimit = transactionGasLimitOrDefault(web3jTransaction);
+        val gasLimit = transactionGasLimitOrDefault(web3jTransaction)
         val result = makeEthCall(web3jTransaction, "latest")
         val gasUse = gasLimit - result!!.gasRemaining
 
