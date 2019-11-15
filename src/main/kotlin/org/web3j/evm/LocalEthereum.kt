@@ -15,7 +15,6 @@ package org.web3j.evm
 import java.math.BigInteger
 import java.util.Optional
 import java.util.OptionalInt
-import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.config.GenesisConfigFile
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResultFactory
@@ -439,8 +438,6 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
     }
 
     companion object {
-        private val LOG = LogManager.getLogger()
-
         private fun hexToULong(hex: String): Long {
             return UInt256.fromHexString(hex).toLong()
         }
