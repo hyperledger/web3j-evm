@@ -12,15 +12,15 @@
  */
 package org.web3j.protocol.core;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.Uint;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.request.Transaction;
-
-import java.math.BigInteger;
-import java.util.Arrays;
 
 /** Mordon Testnet Configuration. */
 public class TestnetConfig implements IntegrationTestConfig {
@@ -78,7 +78,10 @@ public class TestnetConfig implements IntegrationTestConfig {
     public Transaction buildTransaction(Web3j web3j) throws Exception {
         return Transaction.createContractTransaction(
                 validAccount(),
-                web3j.ethGetTransactionCount(validAccount(), DefaultBlockParameter.valueOf("latest")).send().getTransactionCount(), // nonce
+                web3j.ethGetTransactionCount(
+                                validAccount(), DefaultBlockParameter.valueOf("latest"))
+                        .send()
+                        .getTransactionCount(), // nonce
                 Transaction.DEFAULT_GAS,
                 "0x");
     }

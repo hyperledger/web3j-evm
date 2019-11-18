@@ -12,10 +12,10 @@
  */
 package org.web3j.protocol.core;
 
+import java.math.BigInteger;
+
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.request.Transaction;
-
-import java.math.BigInteger;
 
 /** Common values used by integration tests. */
 public interface IntegrationTestConfig {
