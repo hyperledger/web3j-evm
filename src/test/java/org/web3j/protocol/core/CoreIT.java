@@ -12,10 +12,15 @@
  */
 package org.web3j.protocol.core;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+
 import org.hyperledger.besu.ethereum.vm.OperationTracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
 import org.web3j.abi.datatypes.Address;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
@@ -25,10 +30,6 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.*;
 import org.web3j.tx.Transfer;
 import org.web3j.utils.Convert;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -43,19 +44,25 @@ public class CoreIT {
 
     @BeforeEach
     public void setUp() throws Exception {
-        final Credentials credentials = WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
+        final Credentials credentials =
+                WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
         final OperationTracer operationTracer = new PassthroughTracer();
 
-        this.web3j = Web3j.build(new LocalWeb3jService(new Address(credentials.getAddress()), operationTracer));
+        this.web3j =
+                Web3j.build(
+                        new LocalWeb3jService(
+                                new Address(credentials.getAddress()), operationTracer));
 
         TransactionReceipt transactionReceipt =
                 Transfer.sendFunds(
-                        web3j,
-                        credentials, "0x2dfBf35bb7c3c0A466A6C48BEBf3eF7576d3C420",
-                        new BigDecimal("1"), Convert.Unit.ETHER).send();
+                                web3j,
+                                credentials,
+                                "0x2dfBf35bb7c3c0A466A6C48BEBf3eF7576d3C420",
+                                new BigDecimal("1"),
+                                Convert.Unit.ETHER)
+                        .send();
 
-        if (!transactionReceipt.isStatusOK())
-            throw new RuntimeException("Failed transaction");
+        if (!transactionReceipt.isStatusOK()) throw new RuntimeException("Failed transaction");
     }
 
     @Test
@@ -250,7 +257,9 @@ public class CoreIT {
     @Test
     public void testEthCall() throws Exception {
         EthCall ethCall =
-                web3j.ethCall(config.buildTransaction(web3j), DefaultBlockParameter.valueOf("latest"))
+                web3j.ethCall(
+                                config.buildTransaction(web3j),
+                                DefaultBlockParameter.valueOf("latest"))
                         .send();
 
         assertEquals(DefaultBlockParameterName.LATEST.getValue(), ("latest"));
