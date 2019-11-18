@@ -66,6 +66,7 @@ public class CoreIT {
         assertFalse(clientVersion.isEmpty());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testWeb3Sha3() throws Exception {
         Web3Sha3 web3Sha3 = web3j.web3Sha3("0x68656c6c6f20776f726c64").send();
@@ -80,18 +81,21 @@ public class CoreIT {
         assertFalse(netVersion.getNetVersion().isEmpty());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testNetListening() throws Exception {
         NetListening netListening = web3j.netListening().send();
         assertTrue(netListening.isListening());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testNetPeerCount() throws Exception {
         NetPeerCount netPeerCount = web3j.netPeerCount().send();
         assertTrue(netPeerCount.getQuantity().signum() == 1);
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthProtocolVersion() throws Exception {
         EthProtocolVersion ethProtocolVersion = web3j.ethProtocolVersion().send();
@@ -112,12 +116,14 @@ public class CoreIT {
         assertNotNull(ethCoinbase.getAddress());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthMining() throws Exception {
         EthMining ethMining = web3j.ethMining().send();
         assertNotNull(ethMining.getResult());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthHashrate() throws Exception {
         EthHashrate ethHashrate = web3j.ethHashrate().send();
@@ -130,6 +136,7 @@ public class CoreIT {
         assertTrue(ethGasPrice.getGasPrice().signum() == 1);
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthAccounts() throws Exception {
         EthAccounts ethAccounts = web3j.ethAccounts().send();
@@ -142,6 +149,7 @@ public class CoreIT {
         assertTrue(ethBlockNumber.getBlockNumber().longValue() >= 0);
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetBalance() throws Exception {
         EthGetBalance ethGetBalance =
@@ -150,6 +158,7 @@ public class CoreIT {
         assertTrue(ethGetBalance.getBalance().signum() == 1);
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetStorageAt() throws Exception {
         EthGetStorageAt ethGetStorageAt =
@@ -170,6 +179,7 @@ public class CoreIT {
         assertTrue(ethGetTransactionCount.getTransactionCount().signum() == 1);
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetBlockTransactionCountByHash() throws Exception {
         EthGetBlockTransactionCountByHash ethGetBlockTransactionCountByHash =
@@ -179,6 +189,7 @@ public class CoreIT {
                 (config.validBlockTransactionCount()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetBlockTransactionCountByNumber() throws Exception {
         EthGetBlockTransactionCountByNumber ethGetBlockTransactionCountByNumber =
@@ -190,6 +201,7 @@ public class CoreIT {
                 (config.validBlockTransactionCount()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetUncleCountByBlockHash() throws Exception {
         EthGetUncleCountByBlockHash ethGetUncleCountByBlockHash =
@@ -197,6 +209,7 @@ public class CoreIT {
         assertEquals(ethGetUncleCountByBlockHash.getUncleCount(), (config.validBlockUncleCount()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetUncleCountByBlockNumber() throws Exception {
         EthGetUncleCountByBlockNumber ethGetUncleCountByBlockNumber =
@@ -205,6 +218,7 @@ public class CoreIT {
                 ethGetUncleCountByBlockNumber.getUncleCount(), (config.validBlockUncleCount()));
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetCode() throws Exception {
         EthGetCode ethGetCode =
@@ -249,6 +263,7 @@ public class CoreIT {
         assertTrue(ethEstimateGas.getAmountUsed().signum() == 1);
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByHashReturnHashObjects() throws Exception {
         EthBlock ethBlock = web3j.ethGetBlockByHash(config.validBlockHash(), false).send();
@@ -260,6 +275,7 @@ public class CoreIT {
                 block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByHashReturnFullTransactionObjects() throws Exception {
         EthBlock ethBlock = web3j.ethGetBlockByHash(config.validBlockHash(), true).send();
@@ -271,6 +287,7 @@ public class CoreIT {
                 block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByNumberReturnHashObjects() throws Exception {
         EthBlock ethBlock =
@@ -284,6 +301,7 @@ public class CoreIT {
                 block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByNumberReturnTransactionObjects() throws Exception {
         EthBlock ethBlock =
@@ -297,6 +315,7 @@ public class CoreIT {
                 block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetTransactionByHash() throws Exception {
         EthTransaction ethTransaction =
@@ -306,6 +325,7 @@ public class CoreIT {
         assertEquals(transaction.getBlockHash(), (config.validBlockHash()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetTransactionByBlockHashAndIndex() throws Exception {
         BigInteger index = BigInteger.ONE;
@@ -318,6 +338,7 @@ public class CoreIT {
         assertEquals(transaction.getTransactionIndex(), (index));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetTransactionByBlockNumberAndIndex() throws Exception {
         BigInteger index = BigInteger.ONE;
@@ -332,6 +353,7 @@ public class CoreIT {
         assertEquals(transaction.getTransactionIndex(), (index));
     }
 
+    @Disabled("Missing test setup")
     @Test
     public void testEthGetTransactionReceipt() throws Exception {
         EthGetTransactionReceipt ethGetTransactionReceipt =
@@ -342,6 +364,7 @@ public class CoreIT {
         assertEquals(transactionReceipt.getTransactionHash(), (config.validTransactionHash()));
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetUncleByBlockHashAndIndex() throws Exception {
         EthBlock ethBlock =
@@ -350,6 +373,7 @@ public class CoreIT {
         assertNotNull(ethBlock.getBlock());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetUncleByBlockNumberAndIndex() throws Exception {
         EthBlock ethBlock =
@@ -397,6 +421,7 @@ public class CoreIT {
         assertFalse(ethCompileSerpent.getCompiledSourceCode().isEmpty());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testFiltersByFilterId() throws Exception {
         org.web3j.protocol.core.methods.request.EthFilter ethFilter =
@@ -426,18 +451,21 @@ public class CoreIT {
         assertTrue(ethUninstallFilter.isUninstalled());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthNewBlockFilter() throws Exception {
         EthFilter ethNewBlockFilter = web3j.ethNewBlockFilter().send();
         assertNotNull(ethNewBlockFilter.getFilterId());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthNewPendingTransactionFilter() throws Exception {
         EthFilter ethNewPendingTransactionFilter = web3j.ethNewPendingTransactionFilter().send();
         assertNotNull(ethNewPendingTransactionFilter.getFilterId());
     }
 
+    @Disabled("Missing RPC")
     @Test
     public void testEthGetLogs() throws Exception {
         org.web3j.protocol.core.methods.request.EthFilter ethFilter =
