@@ -12,6 +12,7 @@
  */
 package org.web3j.evm
 
+import com.google.common.io.Resources
 import java.math.BigInteger
 import java.util.Optional
 import java.util.OptionalInt
@@ -57,6 +58,7 @@ import org.hyperledger.besu.util.uint.UInt256
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import java.nio.charset.StandardCharsets
 
 class LocalEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
@@ -74,7 +76,15 @@ class LocalEthereum(configuration: Configuration, private val operationTracer: O
     init {
         val chainId = Optional.empty<BigInteger>()
 
-        val genesisConfig = GenesisConfigFile.mainnet()
+        val genesisConfig = if (configuration.genesisFileUrl == null)
+            GenesisConfigFile.mainnet()
+        else
+            GenesisConfigFile.fromConfig(
+                Resources.toString(
+                    configuration.genesisFileUrl,
+                    StandardCharsets.UTF_8
+                )
+            )
         val protocolSchedule = MainnetProtocolSchedule.fromConfig(genesisConfig.configOptions)
 
         val protocolSpec = MainnetProtocolSpecs
