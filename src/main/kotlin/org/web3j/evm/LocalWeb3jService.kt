@@ -42,8 +42,8 @@ import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
 
-class LocalWeb3jService(selfAddress: Address, operationTracer: OperationTracer) : Web3jService {
-    private val localEthereum: LocalEthereum = LocalEthereum(selfAddress, operationTracer)
+class LocalWeb3jService(configuration: Configuration, operationTracer: OperationTracer) : Web3jService {
+    private val localEthereum: LocalEthereum = LocalEthereum(configuration, operationTracer)
 
     @Throws(IOException::class)
     override fun <T : Response<*>> send(request: Request<*, *>, responseType: Class<T>): T {

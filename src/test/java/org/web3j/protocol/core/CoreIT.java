@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
+import org.web3j.evm.Configuration;
 import org.web3j.evm.LocalWeb3jService;
 import org.web3j.evm.PassthroughTracer;
 import org.web3j.protocol.Web3j;
@@ -48,10 +49,10 @@ public class CoreIT {
                 WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
         final OperationTracer operationTracer = new PassthroughTracer();
 
-        this.web3j =
-                Web3j.build(
-                        new LocalWeb3jService(
-                                new Address(credentials.getAddress()), operationTracer));
+        final Configuration configuration =
+                new Configuration(new Address(credentials.getAddress()), 10);
+
+        this.web3j = Web3j.build(new LocalWeb3jService(configuration, operationTracer));
 
         TransactionReceipt transactionReceipt =
                 Transfer.sendFunds(
