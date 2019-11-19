@@ -31,15 +31,15 @@ public class Demo {
         Credentials credentials =
                 WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
 
+        // Define our own address and how much ether to prefund this address with
+        Configuration configuration = new Configuration(new Address(credentials.getAddress()), 10);
+
         // If you don't want console debugging, use PassthroughTracer instead..
         OperationTracer operationTracer = new ConsoleDebugTracer();
         // OperationTracer operationTracer = new PassthroughTracer();
 
         // We use LocalWeb3jService rather than the usual service implementation..
-        Web3j web3j =
-                Web3j.build(
-                        new LocalWeb3jService(
-                                new Address(credentials.getAddress()), operationTracer));
+        Web3j web3j = Web3j.build(new LocalWeb3jService(configuration, operationTracer));
 
         // Transaction etherTransaction =
         // Transaction.createEtherTransaction(credentials.getAddress(), BigInteger.ZERO,

@@ -58,7 +58,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 
-class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val operationTracer: OperationTracer) {
+class LocalEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
     private val transactionProcessor: TransactionProcessor
     private val transactionReceiptFactory: MainnetBlockProcessor.TransactionReceiptFactory
@@ -116,7 +116,7 @@ class LocalEthereum(w3jSelfAddress: org.web3j.abi.datatypes.Address, private val
         genesisState.writeStateTo(worldState)
 
         val updater = worldState.updater()
-        updater.createAccount(Address.fromHexString(w3jSelfAddress.value), 0, Wei.fromEth(10))
+        updater.createAccount(Address.fromHexString(configuration.selfAddress.value), 0, Wei.fromEth(configuration.ethFund))
         updater.commit()
         worldState.persist()
 
