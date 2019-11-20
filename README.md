@@ -16,6 +16,14 @@ You do this by using the web3j-unit @EVMTest annotation with NodeType LOCAL: `@E
 If you want to use this within our own project directly, you would need the EVM dependency + a few external libraries.  **N.B.** Only snapshots are available at this time.
 
 ```groovy
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url "https://dl.bintray.com/ethereum/maven/" }
+    mavenCentral()
+    jcenter()
+}
+
 dependencies {
     implementation "org.web3j:core:4.6.0-SNAPSHOT",
                    "org.web3j:web3j-evm:4.6.0-SNAPSHOT",
