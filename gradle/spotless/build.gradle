@@ -51,4 +51,4 @@ spotless {
     }
 }
 
- spotlessCheck.dependsOn('downloadJavaLicense', 'downloadFormatterProperties')
+spotlessCheck.dependsOn('downloadJavaLicense', 'downloadFormatterProperties')
