@@ -25,7 +25,7 @@ import org.web3j.abi.datatypes.Address;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.evm.Configuration;
-import org.web3j.evm.LocalWeb3jService;
+import org.web3j.evm.EmbeddedWeb3jService;
 import org.web3j.evm.PassthroughTracer;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.*;
@@ -52,7 +52,7 @@ public class CoreIT {
         final Configuration configuration =
                 new Configuration(new Address(credentials.getAddress()), 10);
 
-        this.web3j = Web3j.build(new LocalWeb3jService(configuration, operationTracer));
+        this.web3j = Web3j.build(new EmbeddedWeb3jService(configuration, operationTracer));
 
         TransactionReceipt transactionReceipt =
                 Transfer.sendFunds(
