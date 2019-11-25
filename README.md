@@ -25,13 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation "org.web3j:core:4.6.0-SNAPSHOT",
-                   "org.web3j:web3j-evm:4.6.0-SNAPSHOT",
-                   "org.apache.logging.log4j:log4j-api:2.12.1",
-                   "org.apache.logging.log4j:log4j-core:2.12.1",
-                   "com.google.guava:guava:28.1-jre",
-                   "com.fasterxml.jackson.core:jackson-core:2.10.0",
-                   "com.fasterxml.jackson.core:jackson-annotations:2.10.0"
+    implementation "org.web3j:web3j-evm:4.6.0-SNAPSHOT"
 }
 ```
 
