@@ -60,7 +60,7 @@ import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import java.nio.charset.StandardCharsets
 
-class LocalEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
+class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
     private val transactionProcessor: TransactionProcessor
     private val transactionReceiptFactory: MainnetBlockProcessor.TransactionReceiptFactory

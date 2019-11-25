@@ -42,8 +42,8 @@ import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
 
-class LocalWeb3jService(configuration: Configuration, operationTracer: OperationTracer) : Web3jService {
-    private val localEthereum: LocalEthereum = LocalEthereum(configuration, operationTracer)
+class EmbeddedWeb3jService(configuration: Configuration, operationTracer: OperationTracer) : Web3jService {
+    private val embeddedEthereum: EmbeddedEthereum = EmbeddedEthereum(configuration, operationTracer)
 
     @Throws(IOException::class)
     override fun <T : Response<*>> send(request: Request<*, *>, responseType: Class<T>): T {
@@ -138,7 +138,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethGetTransactionCount(params: List<Any>): Response<String> {
         val address = Address(params[0].toString())
         val defaultBlockParameterName = DefaultBlockParameterName.fromString(params[1].toString())
-        val result = Numeric.encodeQuantity(localEthereum.getTransactionCount(address, defaultBlockParameterName))
+        val result = Numeric.encodeQuantity(embeddedEthereum.getTransactionCount(address, defaultBlockParameterName))
 
         return object : EthGetTransactionCount() {
             override fun getResult(): String {
@@ -149,7 +149,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
 
     private fun ethSendTransaction(params: List<Any>): Response<String> {
         val transaction = params[0] as Transaction
-        val result = localEthereum.processTransaction(transaction)
+        val result = embeddedEthereum.processTransaction(transaction)
 
         return object : EthSendTransaction() {
             override fun getResult(): String {
@@ -160,7 +160,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
 
     private fun ethSendRawTransaction(params: List<Any>): Response<String> {
         val signedTransactionData = params[0] as String
-        val result = localEthereum.processTransaction(signedTransactionData)
+        val result = embeddedEthereum.processTransaction(signedTransactionData)
 
         return object : EthSendTransaction() {
             override fun getResult(): String {
@@ -171,7 +171,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
 
     private fun ethGetTransactionReceipt(params: List<*>): Response<TransactionReceipt> {
         val transactionHash = params[0] as String
-        val result = localEthereum.getTransactionReceipt(transactionHash)
+        val result = embeddedEthereum.getTransactionReceipt(transactionHash)
 
         return object : EthGetTransactionReceipt() {
             override fun getResult(): TransactionReceipt? {
@@ -183,7 +183,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethCall(params: List<*>): Response<String> {
         val transaction = params[0] as Transaction
         val defaultBlockParameter = params[1].toString()
-        val result = localEthereum.ethCall(transaction, defaultBlockParameter)
+        val result = embeddedEthereum.ethCall(transaction, defaultBlockParameter)
 
         return object : EthCall() {
             override fun getResult(): String {
@@ -194,7 +194,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
 
     private fun estimateGas(params: List<*>): Response<String> {
         val transaction = params[0] as Transaction
-        val result = localEthereum.estimateGas(transaction)
+        val result = embeddedEthereum.estimateGas(transaction)
 
         return object : EthEstimateGas() {
             override fun getResult(): String {
@@ -204,7 +204,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     }
 
     private fun ethBlockNumber(): Response<String> {
-        val result = localEthereum.ethBlockNumber()
+        val result = embeddedEthereum.ethBlockNumber()
 
         return object : EthBlockNumber() {
             override fun getResult(): String {
@@ -216,7 +216,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethGetBalance(params: List<*>): Response<String> {
         val address = params[0] as String
         val defaultBlockParameter = params[1] as String
-        val result = localEthereum.ethGetBalance(Address(address), defaultBlockParameter)
+        val result = embeddedEthereum.ethGetBalance(Address(address), defaultBlockParameter)
 
         return object : EthGetBalance() {
             override fun getResult(): String? {
@@ -228,7 +228,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethBlockByHash(params: List<*>): Response<EthBlock.Block> {
         val hash = params[0] as String
         val fullTransactionObjects = params[1] as Boolean
-        val result = localEthereum.ethBlockByHash(hash, fullTransactionObjects)
+        val result = embeddedEthereum.ethBlockByHash(hash, fullTransactionObjects)
 
         return object : EthBlock() {
             override fun getResult(): Block? {
@@ -240,7 +240,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethBlockByNumber(params: List<*>): Response<EthBlock.Block> {
         val blockNumber = params[0] as String
         val fullTransactionObjects = params[1] as Boolean
-        val result = localEthereum.ethBlockByNumber(blockNumber, fullTransactionObjects)
+        val result = embeddedEthereum.ethBlockByNumber(blockNumber, fullTransactionObjects)
 
         return object : EthBlock() {
             override fun getResult(): Block? {
@@ -252,7 +252,7 @@ class LocalWeb3jService(configuration: Configuration, operationTracer: Operation
     private fun ethGetCode(params: List<*>): Response<String> {
         val address = params[0] as String
         val defaultBlockParameter = params[1] as String
-        val result = localEthereum.ethGetCode(Address(address), defaultBlockParameter)
+        val result = embeddedEthereum.ethGetCode(Address(address), defaultBlockParameter)
 
         return object : EthGetCode() {
             override fun getResult(): String {

@@ -38,8 +38,8 @@ public class Demo {
         OperationTracer operationTracer = new ConsoleDebugTracer();
         // OperationTracer operationTracer = new PassthroughTracer();
 
-        // We use LocalWeb3jService rather than the usual service implementation..
-        Web3j web3j = Web3j.build(new LocalWeb3jService(configuration, operationTracer));
+        // We use EmbeddedWeb3jService rather than the usual service implementation..
+        Web3j web3j = Web3j.build(new EmbeddedWeb3jService(configuration, operationTracer));
 
         // Transaction etherTransaction =
         // Transaction.createEtherTransaction(credentials.getAddress(), BigInteger.ZERO,
