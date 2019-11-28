@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation "org.web3j:web3j-evm:4.6.0-SNAPSHOT"
+    implementation "org.web3j:web3j-evm:4.5.8"
 }
 ```
 
