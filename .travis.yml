@@ -21,13 +21,13 @@ jobs:
     if: branch = master AND NOT type = pull_request
   - stage: build and stage release
     if: branch =~ /release/
-    script: "./gradlew check publish -Pversion=${TRAVIS_BRANCH#'release/'}"
+    script: "./gradlew check publish bintrayUpload -Pversion=${TRAVIS_BRANCH#'release/'}"
   - stage: release
     if: branch =~ /release/
     script: "./gradlew closeAndReleaseRepository"
   - stage: github release
     if: branch =~ /release/
-    script: "./gradlew check -Pversion=${TRAVIS_BRANCH#'release/'} && ./scripts/github-release.sh"
+    script: "./gradlew jar -x test ./scripts/github-release.sh"
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 before_install:

@@ -47,3 +47,8 @@ docs/build
 # OS X
 .DS_Store
 web3j.asc
+
+bin
+.classpath
+.project
+.settings
