@@ -3,7 +3,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'application'
-    id 'org.web3j' version '4.4.0'
+    id "com.jfrog.bintray" version "1.8.4"
     id "com.diffplug.gradle.spotless" version "3.25.0"
     id 'io.codearte.nexus-staging' version '0.21.1'
     id "de.marcphilipp.nexus-publish" version "0.4.0"
@@ -14,20 +14,16 @@ plugins {
 description 'Web3j-evm extension'
 
 ext {
-    web3jVersion = '4.6.0-SNAPSHOT'
+    web3jVersion = version
     junitVersion = '5.5.2'
     log4jVersion = '2.12.1'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
 }
 
-nexusStaging {
-    username System.getenv('OSSRH_USERNAME')
-    password System.getenv('OSSRH_PASSWORD')
-}
-
 apply {
     [
+        'bintray',
         'jacoco',
         'java',
         'javadoc',
@@ -43,20 +39,6 @@ apply {
             onlyIfModified true
         }
         from("$rootDir/gradle/$buildScript/build.gradle")
-    }
-}
-
-publishing {
-    publications {
-        maven(MavenPublication) {
-            pom {
-                scm {
-                    url = "https://github.com/web3j/evm"
-                    connection = "scm:https://github.com/web3j/evm.git"
-                    developerConnection = "scm:git://github.com/web3j/evm.git"
-                }
-            }
-        }
     }
 }
 
