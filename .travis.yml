@@ -27,7 +27,7 @@ jobs:
     script: "./gradlew closeAndReleaseRepository"
   - stage: github release
     if: branch =~ /release/
-    script: "./gradlew jar -x test ./scripts/github-release.sh"
+    script: "./gradlew jar -x test -Pversion=${TRAVIS_BRANCH#'release/'} && ./scripts/github-release.sh"
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 before_install:
