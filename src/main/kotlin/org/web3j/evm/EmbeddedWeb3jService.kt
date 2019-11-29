@@ -45,6 +45,9 @@ import org.web3j.utils.Numeric
 class EmbeddedWeb3jService(configuration: Configuration, operationTracer: OperationTracer) : Web3jService {
     private val embeddedEthereum: EmbeddedEthereum = EmbeddedEthereum(configuration, operationTracer)
 
+    constructor(configuration: Configuration) : this(configuration, PassthroughTracer()) {
+    }
+
     @Throws(IOException::class)
     override fun <T : Response<*>> send(request: Request<*, *>, responseType: Class<T>): T {
         return responseType.cast(send(request))
@@ -138,7 +141,8 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
     private fun ethGetTransactionCount(params: List<Any>): Response<String> {
         val address = Address(params[0].toString())
         val defaultBlockParameterName = DefaultBlockParameterName.fromString(params[1].toString())
-        val result = Numeric.encodeQuantity(embeddedEthereum.getTransactionCount(address, defaultBlockParameterName))
+        val result =
+            Numeric.encodeQuantity(embeddedEthereum.getTransactionCount(address, defaultBlockParameterName))
 
         return object : EthGetTransactionCount() {
             override fun getResult(): String {
