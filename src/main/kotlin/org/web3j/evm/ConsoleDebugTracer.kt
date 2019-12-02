@@ -84,25 +84,15 @@ class ConsoleDebugTracer(private val reader: BufferedReader) : OperationTracer {
 
             sb.append(operation)
 
-            run {
-                var j = cleanString(operation).length
-                while (j < OP_CODES_WIDTH && haveActiveStackOutput) {
-                    sb.append(" ")
-                    j++
-                }
-            }
-
             if (haveActiveStackOutput) {
-                val stackHeader = "" + TERMINAL.ANSI_GREEN + "-- Stack "
-                sb.append(stackHeader)
-                sb.append("-".repeat(max(0, FULL_WIDTH - OP_CODES_WIDTH - cleanString(stackHeader).length)))
+                sb.append(" ".repeat((cleanString(operation).length..OP_CODES_WIDTH).count() - 1))
+                sb.append(STACK_HEADER)
+                sb.append("-".repeat(max(0, FULL_WIDTH - OP_CODES_WIDTH - cleanString(STACK_HEADER).length)))
                 sb.append(TERMINAL.ANSI_RESET)
             }
 
-            var j = cleanString(operation).length
-            while (j < OP_CODES_WIDTH && i + 1 == operations.size) {
-                sb.append(" ")
-                j++
+            if (i + 1 == operations.size) {
+                sb.append(" ".repeat((cleanString(operation).length..OP_CODES_WIDTH).count() - 1))
             }
         }
 
@@ -182,6 +172,7 @@ class ConsoleDebugTracer(private val reader: BufferedReader) : OperationTracer {
         private const val OP_CODES_WIDTH = 30
         private const val FULL_WIDTH = OP_CODES_WIDTH + 77
         private const val NUMBER_FORMAT = "0x%08x"
+        private val STACK_HEADER = "" + TERMINAL.ANSI_GREEN + "-- Stack "
 
         private fun cleanString(input: String): String {
             return TERMINAL.values().fold(input) { output, t -> output.replace(t.toString(), "") }
