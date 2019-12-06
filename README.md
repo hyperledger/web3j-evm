@@ -17,9 +17,6 @@ If you want to use this within our own project directly, you would need the EVM 
 
 ```groovy
 repositories {
-    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-    maven { url "https://dl.bintray.com/ethereum/maven/" }
     mavenCentral()
     jcenter()
 }
