@@ -441,10 +441,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     fun ethGetCode(w3jAddress: org.web3j.abi.datatypes.Address, @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String): String {
-        return blockchainQueries
-            .getCode(Address.fromHexString(w3jAddress.value), blockchainQueries.headBlockNumber())
-            .map(BytesValue::toString)
-            .orElse(null)
+        return worldState.get(Address.fromHexString(w3jAddress.value))?.code?.toString() ?: "0x"
     }
 
     companion object {
