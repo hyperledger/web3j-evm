@@ -27,9 +27,11 @@ import org.web3j.crypto.WalletUtils;
 import org.web3j.evm.Configuration;
 import org.web3j.evm.EmbeddedWeb3jService;
 import org.web3j.evm.PassthroughTracer;
+import org.web3j.generated.Fibonacci;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.*;
 import org.web3j.tx.Transfer;
+import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Convert;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,13 +42,13 @@ public class CoreIT {
     private Web3j web3j;
 
     private IntegrationTestConfig config = new TestnetConfig();
+    private Credentials credentials;
 
     public CoreIT() {}
 
     @BeforeEach
     public void setUp() throws Exception {
-        final Credentials credentials =
-                WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
+        credentials = WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
         final OperationTracer operationTracer = new PassthroughTracer();
 
         final Configuration configuration =
@@ -226,15 +228,22 @@ public class CoreIT {
                 ethGetUncleCountByBlockNumber.getUncleCount(), (config.validBlockUncleCount()));
     }
 
-    @Disabled("Missing test setup")
     @Test
     public void testEthGetCode() throws Exception {
+        final Fibonacci send =
+                Fibonacci.deploy(web3j, credentials, new DefaultGasProvider()).send();
         EthGetCode ethGetCode =
-                web3j.ethGetCode(
-                                config.validContractAddress(),
-                                DefaultBlockParameter.valueOf("latest"))
+                web3j.ethGetCode(send.getContractAddress(), DefaultBlockParameter.valueOf("latest"))
                         .send();
         assertEquals(ethGetCode.getCode(), (config.validContractCode()));
+    }
+
+    @Test
+    public void testEthGetCodeEmpty() throws Exception {
+        EthGetCode ethGetCode =
+                web3j.ethGetCode(credentials.getAddress(), DefaultBlockParameter.valueOf("latest"))
+                        .send();
+        assertEquals(ethGetCode.getCode(), "0x");
     }
 
     @Disabled // TODO: Once account unlock functionality is available
