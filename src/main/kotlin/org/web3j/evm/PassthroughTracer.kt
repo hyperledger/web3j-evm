@@ -17,12 +17,49 @@ import org.hyperledger.besu.ethereum.core.Gas
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
+import org.web3j.evm.utils.NullReader
+import java.io.BufferedReader
+import java.io.File
+import java.lang.StringBuilder
 
-class PassthroughTracer : OperationTracer {
+class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
+    NullReader()
+)) {
     @Throws(ExceptionalHaltException::class)
     override fun traceExecution(
         messageFrame: MessageFrame,
         optional: Optional<Gas>,
         executeOperation: OperationTracer.ExecuteOperation
-    ) = executeOperation.execute()
+    ) {
+        if (metaFile != null && metaFile.exists()) {
+            val (sourceMapElement, sourceSection) = sourceAtMessageFrame(messageFrame)
+
+            val sb = StringBuilder()
+
+            if (sourceMapElement != null) sb.append("At ${sourceMapElement.sourceFileByteOffset}:${sourceMapElement.lengthOfSourceRange}:${sourceMapElement.sourceIndex}:")
+            else sb.append("At unknown location:")
+
+            sb.append('\n')
+            sb.append('\n')
+
+            sourceSection
+                .dropWhile { it.isBlank() }
+                .reversed()
+                .dropWhile { it.isBlank() }
+                .reversed()
+
+            if (sourceSection.isEmpty()) threadLocalSourceContext.set(null)
+            else threadLocalSourceContext.set(sb.append(sourceSection.joinToString("\n")).toString())
+        }
+
+        executeOperation.execute()
+    }
+
+    companion object {
+        private val threadLocalSourceContext = ThreadLocal<String>()
+
+        @JvmStatic
+        val sourceContext: String
+            get() = threadLocalSourceContext.get() ?: "No source available"
+    }
 }

@@ -12,8 +12,13 @@
  */
 package org.web3j.evm
 
-import java.io.*
-import java.util.*
+import java.io.BufferedReader
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.util.Optional
+import java.util.EnumSet
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.collections.HashMap
@@ -24,20 +29,22 @@ import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import com.beust.klaxon.Klaxon
+import kotlin.collections.ArrayList
 
-private data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
+internal data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
 
-private data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
+internal data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
 
-private data class ContractMapping(val idxSource: Map<Int, String>, val pcSourceMappings: Map<Int, SourceMapElement>)
+internal data class ContractMapping(val idxSource: Map<Int, String>, val pcSourceMappings: Map<Int, SourceMapElement>)
 
-class ConsoleDebugTracer(private val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
+open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
     private val skipOperations = AtomicInteger()
-    private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
     private var lastSourceSubsection = emptyList<String>()
     private var lastSourceMapElement: SourceMapElement? = null
+
+    internal val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
     private enum class TERMINAL constructor(private val escapeSequence: String) {
         ANSI_RESET("\u001B[0m"),
@@ -57,7 +64,9 @@ class ConsoleDebugTracer(private val metaFile: File?, private val reader: Buffer
     }
 
     @JvmOverloads
-    constructor(metaFile: File? = File("build/resources/main/solidity"), stdin: InputStream = System.`in`) : this(metaFile, BufferedReader(InputStreamReader(stdin)))
+    constructor(metaFile: File? = File("build/resources/main/solidity"), stdin: InputStream = System.`in`) : this(metaFile, BufferedReader(
+        InputStreamReader(stdin)
+    ))
 
     private fun maybeContractMap(bytecode: String, contractMeta: ContractMeta): Map<String, String> {
         return contractMeta
@@ -84,34 +93,6 @@ class ConsoleDebugTracer(private val metaFile: File?, private val reader: Buffer
             }
             else -> emptyList()
         }
-    }
-
-    private fun loadContractMapping(contractCreation: Boolean, bytecode: String): ContractMapping {
-        if (metaFile == null || !metaFile.exists())
-            return ContractMapping(emptyMap(), emptyMap())
-
-        val contractMetas = loadContractMeta(metaFile)
-
-        val (contract, sourceList) = contractMetas
-            .map { Pair(maybeContractMap(bytecode, it), it.sourceList) }
-            .firstOrNull { it.first.isNotEmpty() } ?: return ContractMapping(emptyMap(), emptyMap())
-
-        val srcmap = if (contractCreation) {
-            contract["srcmap"]
-        } else {
-            contract["srcmap-runtime"]
-        } ?: return ContractMapping(emptyMap(), emptyMap())
-
-        val idxSource = sourceList
-            .withIndex()
-            .map { Pair(it.index, File(it.value).readText()) }
-            .toMap()
-
-        val sourceMapElements = decompressSourceMap(srcmap)
-        val opCodeGroups = opCodeGroups(bytecode)
-        val pcSourceMappings = pcSourceMap(sourceMapElements, opCodeGroups)
-
-        return ContractMapping(idxSource, pcSourceMappings)
     }
 
     private fun decompressSourceMap(sourceMap: String): List<SourceMapElement> {
@@ -196,6 +177,34 @@ class ConsoleDebugTracer(private val metaFile: File?, private val reader: Buffer
         return mappings
     }
 
+    internal fun loadContractMapping(contractCreation: Boolean, bytecode: String): ContractMapping {
+        if (metaFile == null || !metaFile.exists())
+            return ContractMapping(emptyMap(), emptyMap())
+
+        val contractMetas = loadContractMeta(metaFile)
+
+        val (contract, sourceList) = contractMetas
+            .map { Pair(maybeContractMap(bytecode, it), it.sourceList) }
+            .firstOrNull { it.first.isNotEmpty() } ?: return ContractMapping(emptyMap(), emptyMap())
+
+        val srcmap = if (contractCreation) {
+            contract["srcmap"]
+        } else {
+            contract["srcmap-runtime"]
+        } ?: return ContractMapping(emptyMap(), emptyMap())
+
+        val idxSource = sourceList
+            .withIndex()
+            .map { Pair(it.index, File(it.value).readText()) }
+            .toMap()
+
+        val sourceMapElements = decompressSourceMap(srcmap)
+        val opCodeGroups = opCodeGroups(bytecode)
+        val pcSourceMappings = pcSourceMap(sourceMapElements, opCodeGroups)
+
+        return ContractMapping(idxSource, pcSourceMappings)
+    }
+
     private fun findSourceNear(idxSource: Map<Int, String>, sourceMapElement: SourceMapElement): String {
         val source = idxSource[sourceMapElement.sourceIndex] ?: return ""
 
@@ -241,7 +250,17 @@ class ConsoleDebugTracer(private val metaFile: File?, private val reader: Buffer
         return subsection.toString()
     }
 
-    private fun sourceAtPC(idxSource: Map<Int, String>, pcSourceMappings: Map<Int, SourceMapElement>, pc: Int): Pair<SourceMapElement?, List<String>> {
+    internal fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, List<String>> {
+        val pc = messageFrame.pc
+        val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
+        val bytecode = messageFrame.code.bytes.toUnprefixedString()
+        val (idxSource, pcSourceMappings) = byteCodeContractMapping.getOrPut(Pair(bytecode, contractCreation)) {
+            loadContractMapping(
+                contractCreation,
+                bytecode
+            )
+        }
+
         val selection = findSourceNear(idxSource, pcSourceMappings[pc] ?: return Pair(pcSourceMappings[pc], lastSourceSubsection))
 
         if (selection.isNotBlank())
@@ -309,15 +328,7 @@ class ConsoleDebugTracer(private val metaFile: File?, private val reader: Buffer
         }
 
         // Source code section start
-        val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
-        val bytecode = messageFrame.code.bytes.toUnprefixedString()
-        val (idxSource, pcSourceMappings) = byteCodeContractMapping.getOrPut(Pair(bytecode, contractCreation)) {
-            loadContractMapping(
-                contractCreation,
-                bytecode
-            )
-        }
-        val (sourceMapElement, sourceSection) = sourceAtPC(idxSource, pcSourceMappings, messageFrame.pc)
+        val (sourceMapElement, sourceSection) = sourceAtMessageFrame(messageFrame)
 
         if (metaFile != null && metaFile.exists()) {
             if (sourceMapElement != null) {
