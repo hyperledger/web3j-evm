@@ -22,7 +22,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
 
-data class PassthroughTracerContext(val source: String = "No source available")
+data class PassthroughTracerContext(val source: String = "")
 
 class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
     NullReader()
