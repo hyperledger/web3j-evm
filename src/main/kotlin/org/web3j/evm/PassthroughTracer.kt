@@ -31,6 +31,10 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
 
     fun lastContext() = passthroughTracerContext
 
+    fun resetContext() {
+        passthroughTracerContext = PassthroughTracerContext()
+    }
+
     @Throws(ExceptionalHaltException::class)
     override fun traceExecution(
         messageFrame: MessageFrame,
