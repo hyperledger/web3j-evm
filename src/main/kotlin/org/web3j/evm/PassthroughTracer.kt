@@ -22,9 +22,15 @@ import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
 
+data class PassthroughTracerContext(val source: String = "No source available")
+
 class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
     NullReader()
 )) {
+    private var passthroughTracerContext: PassthroughTracerContext = PassthroughTracerContext()
+
+    fun lastContext() = passthroughTracerContext
+
     @Throws(ExceptionalHaltException::class)
     override fun traceExecution(
         messageFrame: MessageFrame,
@@ -48,18 +54,12 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
                 .dropWhile { it.isBlank() }
                 .reversed()
 
-            if (sourceSection.isEmpty()) threadLocalSourceContext.set(null)
-            else threadLocalSourceContext.set(sb.append(sourceSection.joinToString("\n")).toString())
+            passthroughTracerContext = if (sourceSection.isEmpty())
+                PassthroughTracerContext()
+            else
+                PassthroughTracerContext(sb.append(sourceSection.joinToString("\n")).toString())
         }
 
         executeOperation.execute()
-    }
-
-    companion object {
-        private val threadLocalSourceContext = ThreadLocal<String>()
-
-        @JvmStatic
-        val sourceContext: String
-            get() = threadLocalSourceContext.get() ?: "No source available"
     }
 }
