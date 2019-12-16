@@ -46,22 +46,22 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
 
             val sb = StringBuilder()
 
-            if (sourceMapElement != null) sb.append("At ${sourceMapElement.sourceFileByteOffset}:${sourceMapElement.lengthOfSourceRange}:${sourceMapElement.sourceIndex}:")
-            else sb.append("At unknown location:")
+            if (sourceMapElement != null) sb.append("At solidity source location ${sourceMapElement.sourceFileByteOffset}:${sourceMapElement.lengthOfSourceRange}:${sourceMapElement.sourceIndex}:")
+            else sb.append("At unknown solidity source location:")
 
             sb.append('\n')
             sb.append('\n')
 
-            sourceSection
+            val trimmedSourceSection = sourceSection
                 .dropWhile { it.isBlank() }
                 .reversed()
                 .dropWhile { it.isBlank() }
                 .reversed()
 
-            passthroughTracerContext = if (sourceSection.isEmpty())
+            passthroughTracerContext = if (trimmedSourceSection.isEmpty())
                 PassthroughTracerContext()
             else
-                PassthroughTracerContext(sb.append(sourceSection.joinToString("\n")).toString())
+                PassthroughTracerContext(sb.append(trimmedSourceSection.joinToString("\n")).toString())
         }
 
         executeOperation.execute()
