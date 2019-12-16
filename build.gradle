@@ -45,7 +45,8 @@ apply {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+
     implementation "org.web3j:core:$web3jVersion"
     implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
     implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
@@ -80,6 +81,8 @@ jar {
             it.isDirectory() ? it : zipTree(it)
         }
     }
+
+    exclude("org/web3j/greeter/generated/contracts/Greeter*", "org/web3j/evm/Demo*")
 }
 
 application {
