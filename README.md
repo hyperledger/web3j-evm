@@ -11,9 +11,8 @@ Everything runs within the JVM process, including EVM bytecode, which allows for
 ## Getting started
 
 Often you'd use this together with the [web3j-unit](https://github.com/web3j/web3j-unit) project, allowing you to run unit and integration tests without the need to start an Ethereum node.
-You do this by using the web3j-unit @EVMTest annotation with NodeType EMBEDDED: `@EVMTest(NodeType.EMBEDDED)`
 
-If you want to use this within our own project directly, you would need the EVM dependency + a few external libraries.  **N.B.** Only snapshots are available at this time.
+If you want to use this within our own project directly, you would need the EVM dependency + a few external libraries. Have a look at the [example project](https://github.com/web3j/web3j-evmexample) on how to do this.
 
 ```groovy
 repositories {
