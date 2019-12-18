@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'idea'
     id 'jacoco'
-    id 'application'
     id "com.jfrog.bintray" version "1.8.4"
     id "com.diffplug.gradle.spotless" version "3.25.0"
     id 'io.codearte.nexus-staging' version '0.21.1'
@@ -81,14 +80,4 @@ jar {
             it.isDirectory() ? it : zipTree(it)
         }
     }
-
-    exclude("org/web3j/greeter/generated/contracts/Greeter*", "org/web3j/evm/Demo*")
-}
-
-application {
-    mainClassName = 'org.web3j.evm.Demo'
-}
-
-run {
-    standardInput = System.in
 }
