@@ -48,7 +48,7 @@ public class CoreIT {
 
     @BeforeEach
     public void setUp() throws Exception {
-        credentials = WalletUtils.loadCredentials("Password123", "resources/demo-wallet.json");
+        credentials = WalletUtils.loadCredentials("Password123", "resources/test-wallet.json");
         final OperationTracer operationTracer = new PassthroughTracer();
 
         final Configuration configuration =
