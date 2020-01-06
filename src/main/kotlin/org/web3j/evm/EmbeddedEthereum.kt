@@ -39,7 +39,7 @@ import org.hyperledger.besu.ethereum.core.Hash
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.Transaction
 import org.hyperledger.besu.ethereum.core.Wei
-import org.hyperledger.besu.ethereum.mainnet.MainnetBlockProcessor
+import org.hyperledger.besu.ethereum.mainnet.AbstractBlockProcessor
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSpecs
 import org.hyperledger.besu.ethereum.mainnet.MainnetTransactionValidator
@@ -63,7 +63,7 @@ import java.nio.charset.StandardCharsets
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
     private val genesisState: GenesisState
     private val transactionProcessor: TransactionProcessor
-    private val transactionReceiptFactory: MainnetBlockProcessor.TransactionReceiptFactory
+    private val transactionReceiptFactory: AbstractBlockProcessor.TransactionReceiptFactory
     private val blockchain: MutableBlockchain
     private val worldState: DefaultMutableWorldState
     private val blockchainQueries: BlockchainQueries
@@ -106,8 +106,6 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         transactionReceiptFactory = protocolSpec.transactionReceiptFactory
 
         val storageProvider = KeyValueStorageProvider(
-            InMemoryKeyValueStorage(),
-            InMemoryKeyValueStorage(),
             InMemoryKeyValueStorage(),
             InMemoryKeyValueStorage(),
             InMemoryKeyValueStorage(),
