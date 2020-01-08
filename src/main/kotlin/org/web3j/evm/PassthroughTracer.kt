@@ -42,8 +42,8 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
         executeOperation: OperationTracer.ExecuteOperation
     ) {
         if (metaFile != null && metaFile.exists()) {
-            val (sourceMapElement, sourceDetails) = sourceAtMessageFrame(messageFrame)
-            val (sourceFile, sourceSection) = sourceDetails
+            val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
+            val (_, sourceSection) = sourceFile
 
             val sb = StringBuilder()
 
@@ -53,7 +53,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
             sb.append('\n')
             sb.append('\n')
 
-            val trimmedSourceSection = sourceSection
+            val trimmedSourceSection = mergeSourceContent(sourceSection)
                 .dropWhile { it.isBlank() }
                 .reversed()
                 .dropWhile { it.isBlank() }

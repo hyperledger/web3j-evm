@@ -22,6 +22,7 @@ import java.util.SortedMap
 import java.util.TreeMap
 import java.util.Optional
 import java.util.EnumSet
+import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
 import kotlin.math.max
@@ -34,21 +35,22 @@ import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import com.beust.klaxon.Klaxon
 
-internal data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
+private data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
 
-internal data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
+private data class ContractMapping(val idxSource: Map<Int, SourceFile>, val pcSourceMappings: Map<Int, SourceMapElement>)
 
-internal data class ContractMapping(val idxSource: Map<Int, Pair<String, SortedMap<Int, String>>>, val pcSourceMappings: Map<Int, SourceMapElement>)
+data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
+
+data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, String> = Collections.emptySortedMap())
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
     private val skipOperations = AtomicInteger()
 
-    private var lastSourceFile: String? = null
-    private var lastSourceSubsection = emptyList<String>()
+    private var lastSourceFile = SourceFile()
     private var lastSourceMapElement: SourceMapElement? = null
 
-    internal val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
+    private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
     private enum class TERMINAL constructor(private val escapeSequence: String) {
         ANSI_RESET("\u001B[0m"),
@@ -208,7 +210,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         val idxSource = sourceList
             .withIndex()
-            .map { Pair(it.index, Pair(it.value, loadFile(it.value))) }
+            .map { Pair(it.index, SourceFile(it.value, loadFile(it.value))) }
             .toMap()
 
         val sourceMapElements = decompressSourceMap(srcmap)
@@ -218,13 +220,13 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         return ContractMapping(idxSource, pcSourceMappings)
     }
 
-    private fun sourceSize(source: SortedMap<Int, String>) = source.values
+    private fun sourceSize(sourceContent: SortedMap<Int, String>) = sourceContent.values
         // Doing +1 to include newline
         .map { it.length + 1 }
         .sum()
 
-    private fun sourceRange(source: SortedMap<Int, String>, from: Int, to: Int): SortedMap<Int, String> {
-        return source.entries.fold(Pair(0, TreeMap<Int, String>())) { acc, entry ->
+    private fun sourceRange(sourceContent: SortedMap<Int, String>, from: Int, to: Int): SortedMap<Int, String> {
+        return sourceContent.entries.fold(Pair(0, TreeMap<Int, String>())) { acc, entry ->
             val subsection = entry.value
                 .withIndex()
                 .filter { acc.first + it.index in from..to }
@@ -241,20 +243,21 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }.second
     }
 
-    private fun findSourceNear(idxSource: Map<Int, Pair<String, SortedMap<Int, String>>>, sourceMapElement: SourceMapElement): String {
-        val source = idxSource[sourceMapElement.sourceIndex]?.second ?: return ""
-        val sourceLength = sourceSize(source)
+    private fun findSourceNear(idxSource: Map<Int, SourceFile>, sourceMapElement: SourceMapElement): SourceFile {
+        val sourceFile = idxSource[sourceMapElement.sourceIndex] ?: return SourceFile()
+        val sourceContent = sourceFile.sourceContent
+        val sourceLength = sourceSize(sourceContent)
 
         val from = sourceMapElement.sourceFileByteOffset
         val to = from + sourceMapElement.lengthOfSourceRange
 
-        val head = sourceRange(source, 0, from - 1)
+        val head = sourceRange(sourceContent, 0, from - 1)
 
-        val body = sourceRange(source, from, to - 1).map {
+        val body = sourceRange(sourceContent, from, to - 1).map {
             Pair(it.key, "${TERMINAL.ANSI_YELLOW}${it.value}${TERMINAL.ANSI_RESET}")
         }.toMap(TreeMap())
 
-        val tail = sourceRange(source, to, sourceLength)
+        val tail = sourceRange(sourceContent, to, sourceLength)
 
         val subsection = TreeMap<Int, String>()
 
@@ -270,14 +273,10 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             subsection.compute(lineNumber) { _, line -> if (line == null) newLine else line + newLine }
         }
 
-        return subsection.entries.joinToString(separator = "\n") {
-            val lineNumber = ("%" + subsection.lastKey().toString().length + "s").format(it.key.toString())
-            val lineNumberSpacing = "%-4s".format(lineNumber)
-            return@joinToString "$lineNumberSpacing ${it.value}"
-        }
+        return SourceFile(sourceFile.filePath, subsection)
     }
 
-    internal fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, Pair<String?, List<String>>> {
+    protected fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, SourceFile> {
         val pc = messageFrame.pc
         val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
         val bytecode = messageFrame.code.bytes.toUnprefixedString()
@@ -288,14 +287,31 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             )
         }
 
-        val selection = findSourceNear(idxSource, pcSourceMappings[pc] ?: return Pair(pcSourceMappings[pc], Pair(lastSourceFile, lastSourceSubsection)))
+        val sourceFileSelection = findSourceNear(idxSource, pcSourceMappings[pc] ?: return Pair(pcSourceMappings[pc], lastSourceFile))
 
-        if (selection.isNotBlank()) {
-            lastSourceFile = idxSource[pcSourceMappings[pc]?.sourceIndex]?.first
-            lastSourceSubsection = selection.split("\n").toList().take(10)
+        if (sourceFileSelection.sourceContent.isNotEmpty()) {
+            lastSourceFile = sourceFileSelection
         }
 
-        return Pair(pcSourceMappings[pc], if (lastSourceSubsection.isEmpty()) Pair(null, listOf("No source available")) else Pair(lastSourceFile, lastSourceSubsection))
+        val outputSourceFile = if (lastSourceFile.sourceContent.isEmpty()) {
+            SourceFile(sourceContent = sortedMapOf(0 to "No source available"))
+        } else lastSourceFile
+
+        return Pair(pcSourceMappings[pc], outputSourceFile)
+    }
+
+    protected fun mergeSourceContent(sourceContent: SortedMap<Int, String>): List<String> {
+        return sourceContent
+            .entries
+            .map {
+                if (it.key > 0) {
+                    val lineNumber = ("%" + sourceContent.lastKey().toString().length + "s").format(it.key.toString())
+                    val lineNumberSpacing = "%-4s".format(lineNumber)
+                    return@map "$lineNumberSpacing ${it.value}"
+                } else {
+                    return@map it.value
+                }
+        }.toList()
     }
 
     @Throws(ExceptionalHaltException::class)
@@ -357,8 +373,8 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
 
         // Source code section start
-        val (sourceMapElement, sourceDetails) = sourceAtMessageFrame(messageFrame)
-        val (sourceFile, sourceSection) = sourceDetails
+        val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
+        val (filePath, sourceSection) = sourceFile
 
         if (metaFile != null && metaFile.exists()) {
             if (sourceMapElement != null) {
@@ -374,10 +390,10 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     append(":")
                     append(sourceMapElement.jumpType)
                     append(" - ")
-                    if (sourceFile == null)
+                    if (filePath == null)
                         append("Unknown source file")
                     else
-                        append(sourceFile)
+                        append(filePath)
                     append(" ")
                 }
 
@@ -389,11 +405,12 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
             sb.append('\n')
 
-            sourceSection
+            mergeSourceContent(sourceSection)
                 .dropWhile { it.isBlank() }
                 .reversed()
                 .dropWhile { it.isBlank() }
                 .reversed()
+                .take(10)
                 .forEach {
                     sb.append(it)
                     sb.append('\n')
