@@ -274,10 +274,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 if (sourceLine == null) {
                     SourceLine(newLine, true, 0)
                 } else {
-                    val offset = if (sourceLine.selected)
-                        min(sourceLine.offset, sourceLine.line.length)
-                    else
-                        sourceLine.line.length
+                    val offset = if (sourceLine.selected) sourceLine.offset else sourceLine.line.length
 
                     SourceLine(sourceLine.line + newLine, true, offset)
                 }
