@@ -41,7 +41,7 @@ private data class ContractMapping(val idxSource: Map<Int, SourceFile>, val pcSo
 
 data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
 
-data class SourceLine(val line: String, val selected: Boolean = false)
+data class SourceLine(val line: String, val selected: Boolean = false, val offset: Int = 0)
 
 data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, SourceLine> = Collections.emptySortedMap())
 
@@ -271,10 +271,16 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         body.forEach { (lineNumber, newLine) ->
             subsection.compute(lineNumber) { _, sourceLine ->
-                if (sourceLine == null)
-                    SourceLine(newLine, true)
-                else
-                    SourceLine(sourceLine.line + newLine, true)
+                if (sourceLine == null) {
+                    SourceLine(newLine, true, 0)
+                } else {
+                    val offset = if (sourceLine.selected)
+                        min(sourceLine.offset, sourceLine.line.length)
+                    else
+                        sourceLine.line.length
+
+                    SourceLine(sourceLine.line + newLine, true, offset)
+                }
             }
         }
 
@@ -283,7 +289,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 if (sourceLine == null)
                     SourceLine(newLine)
                 else
-                    SourceLine(sourceLine.line + newLine, sourceLine.selected)
+                    SourceLine(sourceLine.line + newLine, sourceLine.selected, sourceLine.offset)
             }
         }
 
@@ -403,11 +409,21 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     append(sourceMapElement.sourceIndex)
                     append(":")
                     append(sourceMapElement.jumpType)
-                    append(" - ")
-                    if (filePath == null)
+                    append(" ")
+
+                    if (filePath == null) {
                         append("Unknown source file")
-                    else
+                    } else {
+                        val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
+                        val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
+
                         append(filePath)
+                        append(": (")
+                        append(firstSelectedLine)
+                        append(", ")
+                        append(firstSelectedOffset)
+                        append(")")
+                    }
                     append(" ")
                 }
 
