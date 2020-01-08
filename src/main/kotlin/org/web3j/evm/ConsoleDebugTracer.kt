@@ -17,25 +17,28 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.FileReader
+import java.util.SortedMap
+import java.util.TreeMap
 import java.util.Optional
 import java.util.EnumSet
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.min
 import kotlin.math.max
 import kotlin.collections.HashMap
-import kotlin.math.min
+import kotlin.collections.ArrayList
 import org.hyperledger.besu.ethereum.core.Gas
 import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import com.beust.klaxon.Klaxon
-import kotlin.collections.ArrayList
 
 internal data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
 
 internal data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
 
-internal data class ContractMapping(val idxSource: Map<Int, String>, val pcSourceMappings: Map<Int, SourceMapElement>)
+internal data class ContractMapping(val idxSource: Map<Int, SortedMap<Int, String>>, val pcSourceMappings: Map<Int, SourceMapElement>)
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
@@ -164,6 +167,15 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
     }
 
+    private fun loadFile(path: String): SortedMap<Int, String> {
+        return BufferedReader(FileReader(path)).use { reader ->
+            reader.lineSequence()
+                .withIndex()
+                .map { indexedLine -> Pair(indexedLine.index + 1, indexedLine.value) }
+                .toMap(TreeMap())
+        }
+    }
+
     private fun pcSourceMap(sourceMapElements: List<SourceMapElement>, opCodeGroups: List<String>): Map<Int, SourceMapElement> {
         val mappings = HashMap<Int, SourceMapElement>()
 
@@ -177,7 +189,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         return mappings
     }
 
-    internal fun loadContractMapping(contractCreation: Boolean, bytecode: String): ContractMapping {
+    private fun loadContractMapping(contractCreation: Boolean, bytecode: String): ContractMapping {
         if (metaFile == null || !metaFile.exists())
             return ContractMapping(emptyMap(), emptyMap())
 
@@ -195,7 +207,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         val idxSource = sourceList
             .withIndex()
-            .map { Pair(it.index, File(it.value).readText()) }
+            .map { Pair(it.index, loadFile(it.value)) }
             .toMap()
 
         val sourceMapElements = decompressSourceMap(srcmap)
@@ -205,49 +217,63 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         return ContractMapping(idxSource, pcSourceMappings)
     }
 
-    private fun findSourceNear(idxSource: Map<Int, String>, sourceMapElement: SourceMapElement): String {
+    private fun sourceSize(source: SortedMap<Int, String>) = source.values
+        // Doing +1 to include newline
+        .map { it.length + 1 }
+        .sum()
+
+    private fun sourceRange(source: SortedMap<Int, String>, from: Int, to: Int): SortedMap<Int, String> {
+        return source.entries.fold(Pair(0, TreeMap<Int, String>())) { acc, entry ->
+            val subsection = entry.value
+                .withIndex()
+                .filter { acc.first + it.index in from..to }
+                .map { it.value }
+                .joinToString(separator = "")
+
+            val accMin = acc.first
+            val accMax = acc.first + entry.value.length
+            val overlap = accMin in from..to || accMax in from..to || from in accMin..accMax || to in accMin..accMax
+
+            if (overlap) acc.second[entry.key] = subsection
+
+            return@fold Pair(acc.first + entry.value.length + 1, acc.second)
+        }.second
+    }
+
+    private fun findSourceNear(idxSource: Map<Int, SortedMap<Int, String>>, sourceMapElement: SourceMapElement): String {
         val source = idxSource[sourceMapElement.sourceIndex] ?: return ""
+        val sourceLength = sourceSize(source)
 
         val from = sourceMapElement.sourceFileByteOffset
         val to = from + sourceMapElement.lengthOfSourceRange
 
-        val splitSource = source.split("")
-        val subsection = StringBuilder()
+        val head = sourceRange(source, 0, from - 1)
 
-        var newlineCount = 0
-        for (i in from downTo 0) {
-            if (i >= splitSource.size)
-                break
+        val body = sourceRange(source, from, to - 1).map {
+            Pair(it.key, "${TERMINAL.ANSI_YELLOW}${it.value}${TERMINAL.ANSI_RESET}")
+        }.toMap(TreeMap())
 
-            val part = splitSource[i]
+        val tail = sourceRange(source, to, sourceLength)
 
-            subsection.insert(0, part)
+        val subsection = TreeMap<Int, String>()
 
-            if (part == "\n") newlineCount++
-
-            if (newlineCount >= 2)
-                break
+        head.entries.reversed().take(2).forEach { (lineNumber, newLine) ->
+            subsection[lineNumber] = newLine
         }
 
-        subsection.append(TERMINAL.ANSI_YELLOW)
-        subsection.append(source.substring(
-            Integer.min(from, source.length),
-            Integer.min(to, source.length)))
-        subsection.append(TERMINAL.ANSI_RESET)
-
-        newlineCount = 0
-        for (i in (to + 1) until source.length) {
-            val part = splitSource[i]
-
-            subsection.append(part)
-
-            if (part == "\n") newlineCount++
-
-            if (newlineCount >= 2)
-                break
+        body.forEach { (lineNumber, newLine) ->
+            subsection.compute(lineNumber) { _, line -> if (line == null) newLine else line + newLine }
         }
 
-        return subsection.toString()
+        tail.entries.take(2).forEach { (lineNumber, newLine) ->
+            subsection.compute(lineNumber) { _, line -> if (line == null) newLine else line + newLine }
+        }
+
+        return subsection.entries.joinToString(separator = "\n") {
+            val lineNumber = ("%" + subsection.lastKey().toString().length + "s").format(it.key.toString())
+            val lineNumberSpacing = "%-4s".format(lineNumber)
+            return@joinToString "$lineNumberSpacing ${it.value}"
+        }
     }
 
     internal fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, List<String>> {
