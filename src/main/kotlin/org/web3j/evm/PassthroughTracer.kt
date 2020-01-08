@@ -42,7 +42,8 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
         executeOperation: OperationTracer.ExecuteOperation
     ) {
         if (metaFile != null && metaFile.exists()) {
-            val (sourceMapElement, sourceSection) = sourceAtMessageFrame(messageFrame)
+            val (sourceMapElement, sourceDetails) = sourceAtMessageFrame(messageFrame)
+            val (sourceFile, sourceSection) = sourceDetails
 
             val sb = StringBuilder()
 
