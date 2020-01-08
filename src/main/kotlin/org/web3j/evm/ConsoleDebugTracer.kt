@@ -41,7 +41,9 @@ private data class ContractMapping(val idxSource: Map<Int, SourceFile>, val pcSo
 
 data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
 
-data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, String> = Collections.emptySortedMap())
+data class SourceLine(val line: String, val selected: Boolean = false)
+
+data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, SourceLine> = Collections.emptySortedMap())
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
@@ -170,11 +172,11 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
     }
 
-    private fun loadFile(path: String): SortedMap<Int, String> {
+    private fun loadFile(path: String): SortedMap<Int, SourceLine> {
         return BufferedReader(FileReader(path)).use { reader ->
             reader.lineSequence()
                 .withIndex()
-                .map { indexedLine -> Pair(indexedLine.index + 1, indexedLine.value) }
+                .map { indexedLine -> Pair(indexedLine.index + 1, SourceLine(indexedLine.value)) }
                 .toMap(TreeMap())
         }
     }
@@ -220,26 +222,28 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         return ContractMapping(idxSource, pcSourceMappings)
     }
 
-    private fun sourceSize(sourceContent: SortedMap<Int, String>) = sourceContent.values
+    private fun sourceSize(sourceContent: SortedMap<Int, SourceLine>) = sourceContent.values
         // Doing +1 to include newline
-        .map { it.length + 1 }
+        .map { it.line.length + 1 }
         .sum()
 
-    private fun sourceRange(sourceContent: SortedMap<Int, String>, from: Int, to: Int): SortedMap<Int, String> {
+    private fun sourceRange(sourceContent: SortedMap<Int, SourceLine>, from: Int, to: Int): SortedMap<Int, String> {
         return sourceContent.entries.fold(Pair(0, TreeMap<Int, String>())) { acc, entry ->
-            val subsection = entry.value
+            val subsection = entry
+                .value
+                .line
                 .withIndex()
                 .filter { acc.first + it.index in from..to }
                 .map { it.value }
                 .joinToString(separator = "")
 
             val accMin = acc.first
-            val accMax = acc.first + entry.value.length
+            val accMax = acc.first + entry.value.line.length
             val overlap = accMin in from..to || accMax in from..to || from in accMin..accMax || to in accMin..accMax
 
             if (overlap) acc.second[entry.key] = subsection
 
-            return@fold Pair(acc.first + entry.value.length + 1, acc.second)
+            return@fold Pair(acc.first + entry.value.line.length + 1, acc.second)
         }.second
     }
 
@@ -259,18 +263,28 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         val tail = sourceRange(sourceContent, to, sourceLength)
 
-        val subsection = TreeMap<Int, String>()
+        val subsection = TreeMap<Int, SourceLine>()
 
         head.entries.reversed().take(2).forEach { (lineNumber, newLine) ->
-            subsection[lineNumber] = newLine
+            subsection[lineNumber] = SourceLine(newLine)
         }
 
         body.forEach { (lineNumber, newLine) ->
-            subsection.compute(lineNumber) { _, line -> if (line == null) newLine else line + newLine }
+            subsection.compute(lineNumber) { _, sourceLine ->
+                if (sourceLine == null)
+                    SourceLine(newLine, true)
+                else
+                    SourceLine(sourceLine.line + newLine, true)
+            }
         }
 
         tail.entries.take(2).forEach { (lineNumber, newLine) ->
-            subsection.compute(lineNumber) { _, line -> if (line == null) newLine else line + newLine }
+            subsection.compute(lineNumber) { _, sourceLine ->
+                if (sourceLine == null)
+                    SourceLine(newLine)
+                else
+                    SourceLine(sourceLine.line + newLine, sourceLine.selected)
+            }
         }
 
         return SourceFile(sourceFile.filePath, subsection)
@@ -294,22 +308,22 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
 
         val outputSourceFile = if (lastSourceFile.sourceContent.isEmpty()) {
-            SourceFile(sourceContent = sortedMapOf(0 to "No source available"))
+            SourceFile(sourceContent = sortedMapOf(0 to SourceLine("No source available")))
         } else lastSourceFile
 
         return Pair(pcSourceMappings[pc], outputSourceFile)
     }
 
-    protected fun mergeSourceContent(sourceContent: SortedMap<Int, String>): List<String> {
+    protected fun mergeSourceContent(sourceContent: SortedMap<Int, SourceLine>): List<String> {
         return sourceContent
             .entries
             .map {
                 if (it.key > 0) {
                     val lineNumber = ("%" + sourceContent.lastKey().toString().length + "s").format(it.key.toString())
                     val lineNumberSpacing = "%-4s".format(lineNumber)
-                    return@map "$lineNumberSpacing ${it.value}"
+                    return@map "$lineNumberSpacing ${it.value.line}"
                 } else {
-                    return@map it.value
+                    return@map it.value.line
                 }
         }.toList()
     }
