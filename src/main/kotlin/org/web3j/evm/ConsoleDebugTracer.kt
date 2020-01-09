@@ -48,11 +48,15 @@ data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
     private val skipOperations = AtomicInteger()
+    private val breakPoints = mutableMapOf<String, MutableSet<Int>>()
+    private val commandOutputs = mutableListOf<String>()
+    private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
+    private var runTillEnd = false
+    private var showOpcodes = true
+    private var showStack = true
     private var lastSourceFile = SourceFile()
     private var lastSourceMapElement: SourceMapElement? = null
-
-    private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
     private enum class TERMINAL constructor(private val escapeSequence: String) {
         ANSI_RESET("\u001B[0m"),
@@ -331,61 +335,158 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }.toList()
     }
 
+    private fun isBreakPointActive(filePath: String?, activeLines: Set<Int>): Boolean {
+        val relevantBreakPoints = if (filePath != null) breakPoints
+            .entries
+            .filter { filePath.endsWith(it.key) }
+            .flatMap { it.value }
+        else return false
+
+        return activeLines.any { relevantBreakPoints.contains(it) }
+    }
+
+    private fun parseBreakPointOption(input: String) {
+        val inputParts = input.split(" +".toRegex())
+        if (inputParts.size < 2) return
+
+        when (inputParts[1].toLowerCase()) {
+            "clear" -> {
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Cleared ${breakPoints.size} break points: ${breakPoints.entries.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
+                breakPoints.clear()
+            }
+            "list" -> {
+                if (breakPoints.values.none { it.isNotEmpty() })
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}No active break points${TERMINAL.ANSI_RESET}")
+                else
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Active break points: ${breakPoints.entries.filter { it.value.isNotEmpty() }.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
+            }
+            else -> {
+                if (inputParts.size != 3) return
+
+                val file = inputParts[1]
+                val line = Integer.parseInt(inputParts[2])
+                if (breakPoints[file]?.contains(line) == true) {
+                    breakPoints[file]?.remove(line)
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Removed break point on $file:$line${TERMINAL.ANSI_RESET}")
+                } else {
+                    breakPoints.getOrPut(file) { mutableSetOf() }.add(line)
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Added break point on $file:$line${TERMINAL.ANSI_RESET}")
+                }
+            }
+        }
+    }
+
+    private fun parseShowOption(input: String) {
+        val inputParts = input.split(" +".toRegex())
+        if (inputParts.size < 2) return
+
+        when (inputParts[1].toLowerCase()) {
+            "opcodes" -> {
+                showOpcodes = true
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Showing opcodes${TERMINAL.ANSI_RESET}")
+            }
+            "stack" -> {
+                showStack = true
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Showing stack${TERMINAL.ANSI_RESET}")
+            }
+        }
+    }
+
+    private fun parseHideOption(input: String) {
+        val inputParts = input.split(" +".toRegex())
+        if (inputParts.size < 2) return
+
+        when (inputParts[1].toLowerCase()) {
+            "opcodes" -> {
+                showOpcodes = false
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Hiding opcodes${TERMINAL.ANSI_RESET}")
+            }
+            "stack" -> {
+                showStack = false
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Hiding stack${TERMINAL.ANSI_RESET}")
+            }
+        }
+    }
+
     @Throws(ExceptionalHaltException::class)
     override fun traceExecution(
         messageFrame: MessageFrame,
         optional: Optional<Gas>,
         executeOperation: OperationTracer.ExecuteOperation
     ) {
-        val pauseOnNext = skipOperations.get() <= 1
+        val finalOutput = nextOption(messageFrame)
 
-        val sb = StringBuilder()
-        val stackOutput = ArrayList<String>()
+        executeOperation.execute()
 
-        if (operations.isNotEmpty()) {
-            sb.append(TERMINAL.CLEAR)
+        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
+            skipOperations.set(0)
+            operations.clear()
+            runTillEnd = false
+            println(finalOutput)
         }
+    }
 
-        operations.add(String.format(NUMBER_FORMAT, messageFrame.pc) + " " + messageFrame.currentOperation.name)
+    @Throws(ExceptionalHaltException::class)
+    private fun nextOption(messageFrame: MessageFrame, rerender: Boolean = false): String {
+        val stackOutput = ArrayList<String>()
 
         for (i in 0 until messageFrame.stackSize()) {
             stackOutput.add(String.format(NUMBER_FORMAT, i) + " " + messageFrame.getStackItem(i))
         }
 
+        val sb = StringBuilder()
+
+        if (operations.isNotEmpty()) {
+            sb.append(TERMINAL.CLEAR)
+        }
+
+        if (!rerender) operations.add(String.format(NUMBER_FORMAT, messageFrame.pc) + " " + messageFrame.currentOperation.name)
+
         for (i in operations.indices) {
-            if (i > 0) {
+            val haveActiveLastOpLine = i + 1 == operations.size
+            val haveActiveStackOutput = i + 2 == operations.size && stackOutput.isNotEmpty()
+
+            if (showOpcodes && i > 0) {
+                sb.append('\n')
+            } else if (showStack && haveActiveLastOpLine) {
                 sb.append('\n')
             }
 
-            val haveActiveLastOpLine = i + 1 == operations.size && pauseOnNext
-            val haveActiveStackOutput = i + 2 == operations.size && stackOutput.isNotEmpty()
             val operation =
                 (if (haveActiveLastOpLine) "" + TERMINAL.ANSI_GREEN + "> " else "  ") + operations[i] + TERMINAL.ANSI_RESET
 
-            sb.append(operation)
+            if (showOpcodes) {
+                sb.append(operation)
+            } else if (showStack && (i + 1 == operations.size || i + 2 == operations.size)) {
+                sb.append(" ".repeat(cleanString(operation).length))
+            }
 
-            if (haveActiveStackOutput) {
+            if (haveActiveStackOutput && showStack) {
                 sb.append(" ".repeat((cleanString(operation).length..OP_CODES_WIDTH).count() - 1))
                 sb.append(STACK_HEADER)
                 sb.append("-".repeat(max(0, FULL_WIDTH - OP_CODES_WIDTH - cleanString(STACK_HEADER).length)))
                 sb.append(TERMINAL.ANSI_RESET)
             }
 
-            if (i + 1 == operations.size) {
+            if (i + 1 == operations.size && showStack) {
                 sb.append(" ".repeat((cleanString(operation).length..OP_CODES_WIDTH).count() - 1))
             }
         }
 
-        if (stackOutput.isEmpty()) {
-            sb.append('\n')
-        }
-
-        for (i in stackOutput.indices) {
-            if (i > 0) {
-                sb.append(" ".repeat(OP_CODES_WIDTH))
+        if (showStack) {
+            if (stackOutput.isEmpty()) {
+                sb.append('\n')
             }
 
-            sb.append(stackOutput[i])
+            for (i in stackOutput.indices) {
+                if (i > 0) {
+                    sb.append(" ".repeat(OP_CODES_WIDTH))
+                }
+
+                sb.append(stackOutput[i])
+                sb.append('\n')
+            }
+        } else if (showOpcodes) {
             sb.append('\n')
         }
 
@@ -446,8 +547,22 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
         // Source code section end
 
+        val activeLines = sourceSection
+            .entries
+            .filter { it.value.selected }
+            .map { it.key }
+            .toSet()
+
+        val haveCommandOutput = commandOutputs.isNotEmpty()
+        val haveActiveBreakPoint = isBreakPointActive(filePath, activeLines)
+
+        // If we have any break points, always skip individual ops
+        if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
+
+        val pauseOnNext = skipOperations.decrementAndGet() <= 0 || haveCommandOutput || haveActiveBreakPoint
+
         val opCount = "- " + String.format(NUMBER_FORMAT, operations.size) + " "
-        val options = if (pauseOnNext) {
+        val options = if (pauseOnNext && !runTillEnd) {
             "--> " +
                     TERMINAL.ANSI_YELLOW + "[enter]" + TERMINAL.ANSI_RESET + " = next section, " +
                     TERMINAL.ANSI_YELLOW + "[number]" + TERMINAL.ANSI_RESET + " = next X ops, " +
@@ -460,43 +575,36 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         sb.append("-".repeat(max(0, FULL_WIDTH - opCount.length - cleanString(options).length)))
         sb.append('\n')
 
-        val finalOutput = nextOption(sourceMapElement, sb.toString())
-
-        executeOperation.execute()
-
-        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
-            skipOperations.set(0)
-            operations.clear()
-            println(finalOutput)
-        }
-    }
-
-    @Throws(ExceptionalHaltException::class)
-    private fun nextOption(currentSourceMapElement: SourceMapElement?, output: String): String {
-        if (skipOperations.decrementAndGet() > 0) {
-            return output
-        }
-
-        if (
+        if (runTillEnd) {
+            return sb.toString()
+        } else if (!pauseOnNext) {
+            return sb.toString()
+        } else if (
             lastSourceMapElement != null &&
-            currentSourceMapElement != null &&
-            lastSourceMapElement!!.sourceFileByteOffset == currentSourceMapElement.sourceFileByteOffset &&
-            lastSourceMapElement!!.lengthOfSourceRange == currentSourceMapElement.lengthOfSourceRange &&
-            lastSourceMapElement!!.sourceIndex == currentSourceMapElement.sourceIndex
+            sourceMapElement != null &&
+            lastSourceMapElement!!.sourceFileByteOffset == sourceMapElement.sourceFileByteOffset &&
+            lastSourceMapElement!!.lengthOfSourceRange == sourceMapElement.lengthOfSourceRange &&
+            lastSourceMapElement!!.sourceIndex == sourceMapElement.sourceIndex
         ) {
-            return output
-        } else if (currentSourceMapElement != null && currentSourceMapElement.sourceIndex < 0) {
-            return output
+            return sb.toString()
+        } else if (sourceMapElement != null && sourceMapElement.sourceIndex < 0) {
+            return sb.toString()
         }
 
         try {
-            print("$output: ")
+            print(sb.toString())
+            if (commandOutputs.isNotEmpty()) {
+                commandOutputs.forEach(::println)
+                commandOutputs.clear()
+            }
+            print(": ")
 
             val input = reader.readLine()
 
             when {
                 input == null -> {
                     skipOperations.set(Integer.MAX_VALUE)
+                    breakPoints.clear()
                 }
                 input.trim().toLowerCase() == "abort" -> {
                     val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
@@ -504,20 +612,32 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     throw ExceptionalHaltException(enumSet)
                 }
                 input.trim().toLowerCase() == "end" -> {
-                    skipOperations.set(Integer.MAX_VALUE)
+                    runTillEnd = true
+                }
+                input.trim().toLowerCase().startsWith("break") -> {
+                    parseBreakPointOption(input)
+                    return nextOption(messageFrame, true)
+                }
+                input.trim().toLowerCase().startsWith("show") -> {
+                    parseShowOption(input)
+                    return nextOption(messageFrame, true)
+                }
+                input.trim().toLowerCase().startsWith("hide") -> {
+                    parseHideOption(input)
+                    return nextOption(messageFrame, true)
                 }
                 input.isNotBlank() -> {
                     val x = Integer.parseInt(input)
                     skipOperations.set(max(x, 1))
                 }
                 else -> {
-                    lastSourceMapElement = currentSourceMapElement
+                    lastSourceMapElement = sourceMapElement
                 }
             }
 
             return ""
         } catch (ex: NumberFormatException) {
-            return nextOption(currentSourceMapElement, output)
+            return nextOption(messageFrame, true)
         } catch (ex: IOException) {
             val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
             enumSet.add(ExceptionalHaltReason.NONE)
