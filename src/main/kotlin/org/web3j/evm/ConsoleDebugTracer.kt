@@ -351,14 +351,14 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         when (inputParts[1].toLowerCase()) {
             "clear" -> {
-                commandOutputs.add("${TERMINAL.ANSI_CYAN}Cleared ${breakPoints.size} break points: ${breakPoints.entries.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
+                commandOutputs.add("${TERMINAL.ANSI_CYAN}Cleared ${breakPoints.size} breakpoints: ${breakPoints.entries.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
                 breakPoints.clear()
             }
             "list" -> {
                 if (breakPoints.values.none { it.isNotEmpty() })
-                    commandOutputs.add("${TERMINAL.ANSI_CYAN}No active break points${TERMINAL.ANSI_RESET}")
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}No active breakpoints${TERMINAL.ANSI_RESET}")
                 else
-                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Active break points: ${breakPoints.entries.filter { it.value.isNotEmpty() }.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Active breakpoints: ${breakPoints.entries.filter { it.value.isNotEmpty() }.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
             }
             else -> {
                 if (inputParts.size != 3) return
@@ -367,10 +367,10 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 val line = Integer.parseInt(inputParts[2])
                 if (breakPoints[file]?.contains(line) == true) {
                     breakPoints[file]?.remove(line)
-                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Removed break point on $file:$line${TERMINAL.ANSI_RESET}")
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Removed breakpoint on $file:$line${TERMINAL.ANSI_RESET}")
                 } else {
                     breakPoints.getOrPut(file) { mutableSetOf() }.add(line)
-                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Added break point on $file:$line${TERMINAL.ANSI_RESET}")
+                    commandOutputs.add("${TERMINAL.ANSI_CYAN}Added breakpoint on $file:$line${TERMINAL.ANSI_RESET}")
                 }
             }
         }
@@ -406,6 +406,24 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Hiding stack${TERMINAL.ANSI_RESET}")
             }
         }
+    }
+
+    private fun addHelp(command: String, desc: String) {
+        commandOutputs.add(command + " ".repeat(40 - cleanString(command).length) + desc)
+    }
+
+    private fun showHelp() {
+        addHelp("${TERMINAL.ANSI_YELLOW}[enter]${TERMINAL.ANSI_RESET}", "Continue running until next code section or breakpoint")
+        addHelp("${TERMINAL.ANSI_YELLOW}[number]${TERMINAL.ANSI_RESET}", "Step forward X number of opcodes")
+        addHelp("${TERMINAL.ANSI_YELLOW}end${TERMINAL.ANSI_RESET}", "Run until the end of current function call")
+        addHelp("${TERMINAL.ANSI_RED}abort${TERMINAL.ANSI_RESET}", "Terminate the function call")
+        commandOutputs.add("")
+        addHelp("${TERMINAL.ANSI_YELLOW}show|hide opcodes${TERMINAL.ANSI_RESET}", "Show or hide opcodes")
+        addHelp("${TERMINAL.ANSI_YELLOW}show|hide stack${TERMINAL.ANSI_RESET}", "Show or hide the stack")
+        commandOutputs.add("")
+        addHelp("${TERMINAL.ANSI_YELLOW}break [file name] [line number]${TERMINAL.ANSI_RESET}", "Add or remove a breakpoint")
+        addHelp("${TERMINAL.ANSI_YELLOW}break list${TERMINAL.ANSI_RESET}", "Show all breakpoint")
+        addHelp("${TERMINAL.ANSI_YELLOW}break clear${TERMINAL.ANSI_RESET}", "Remove all breakpoint")
     }
 
     @Throws(ExceptionalHaltException::class)
@@ -556,7 +574,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val haveCommandOutput = commandOutputs.isNotEmpty()
         val haveActiveBreakPoint = isBreakPointActive(filePath, activeLines)
 
-        // If we have any break points, always skip individual ops
+        // If we have any breakpoints, always skip individual ops
         if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
 
         val pauseOnNext = skipOperations.decrementAndGet() <= 0 || haveCommandOutput || haveActiveBreakPoint
@@ -565,9 +583,9 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val options = if (pauseOnNext && !runTillEnd) {
             "--> " +
                     TERMINAL.ANSI_YELLOW + "[enter]" + TERMINAL.ANSI_RESET + " = next section, " +
-                    TERMINAL.ANSI_YELLOW + "[number]" + TERMINAL.ANSI_RESET + " = next X ops, " +
                     TERMINAL.ANSI_YELLOW + "end" + TERMINAL.ANSI_RESET + " = run till end, " +
-                    TERMINAL.ANSI_RED + "abort" + TERMINAL.ANSI_RESET + " = terminate "
+                    TERMINAL.ANSI_RED + "abort" + TERMINAL.ANSI_RESET + " = terminate, " +
+                    TERMINAL.ANSI_YELLOW + "help" + TERMINAL.ANSI_RESET + " = options "
         } else ""
 
         sb.append(opCount)
@@ -624,6 +642,10 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 }
                 input.trim().toLowerCase().startsWith("hide") -> {
                     parseHideOption(input)
+                    return nextOption(messageFrame, true)
+                }
+                input.trim().toLowerCase() == "help" -> {
+                    showHelp()
                     return nextOption(messageFrame, true)
                 }
                 input.isNotBlank() -> {
