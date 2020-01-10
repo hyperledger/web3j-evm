@@ -22,7 +22,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
 
-data class PassthroughTracerContext(val source: String = "")
+data class PassthroughTracerContext(val source: String = "", val firstSelectedLine: Int = 0, val firstSelectedOffset: Int = 0)
 
 class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
     NullReader()
@@ -42,7 +42,8 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
         executeOperation: OperationTracer.ExecuteOperation
     ) {
         if (metaFile != null && metaFile.exists()) {
-            val (sourceMapElement, sourceSection) = sourceAtMessageFrame(messageFrame)
+            val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
+            val (_, sourceSection) = sourceFile
 
             val sb = StringBuilder()
 
@@ -52,16 +53,21 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
             sb.append('\n')
             sb.append('\n')
 
-            val trimmedSourceSection = sourceSection
+            val trimmedSourceSection = mergeSourceContent(sourceSection)
                 .dropWhile { it.isBlank() }
                 .reversed()
                 .dropWhile { it.isBlank() }
                 .reversed()
 
-            passthroughTracerContext = if (trimmedSourceSection.isEmpty())
+            passthroughTracerContext = if (trimmedSourceSection.isEmpty()) {
                 PassthroughTracerContext()
-            else
-                PassthroughTracerContext(sb.append(trimmedSourceSection.joinToString("\n")).toString())
+            } else {
+                val source = sb.append(trimmedSourceSection.joinToString("\n")).toString()
+                val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
+                val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
+
+                PassthroughTracerContext(source, firstSelectedLine, firstSelectedOffset)
+            }
         }
 
         executeOperation.execute()
