@@ -605,7 +605,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             lastSourceMapElement!!.sourceIndex == sourceMapElement.sourceIndex
         ) {
             return sb.toString()
-        } else if (sourceMapElement != null && sourceMapElement.sourceIndex < 0) {
+        } else if (lastSourceMapElement != null && sourceMapElement != null && sourceMapElement.sourceIndex < 0) {
             return sb.toString()
         }
 
@@ -651,6 +651,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 input.isNotBlank() -> {
                     val x = Integer.parseInt(input)
                     skipOperations.set(max(x, 1))
+                    lastSourceMapElement = null
                 }
                 else -> {
                     lastSourceMapElement = sourceMapElement
