@@ -415,7 +415,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     private fun showHelp() {
         addHelp("${TERMINAL.ANSI_YELLOW}[enter]${TERMINAL.ANSI_RESET}", "Continue running until next code section or breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}[number]${TERMINAL.ANSI_RESET}", "Step forward X number of opcodes")
-        addHelp("${TERMINAL.ANSI_YELLOW}end${TERMINAL.ANSI_RESET}", "Run until the end of current function call")
+        addHelp("${TERMINAL.ANSI_YELLOW}end${TERMINAL.ANSI_RESET}", "Run until the end of current transaction")
         addHelp("${TERMINAL.ANSI_RED}abort${TERMINAL.ANSI_RESET}", "Terminate the function call")
         commandOutputs.add("")
         addHelp("${TERMINAL.ANSI_YELLOW}show|hide opcodes${TERMINAL.ANSI_RESET}", "Show or hide opcodes")
