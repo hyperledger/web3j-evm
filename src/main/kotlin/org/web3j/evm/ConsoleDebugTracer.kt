@@ -415,6 +415,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     private fun showHelp() {
         addHelp("${TERMINAL.ANSI_YELLOW}[enter]${TERMINAL.ANSI_RESET}", "Continue running until next code section or breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}[number]${TERMINAL.ANSI_RESET}", "Step forward X number of opcodes")
+        addHelp("${TERMINAL.ANSI_YELLOW}next${TERMINAL.ANSI_RESET}", "Run until the next breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}end${TERMINAL.ANSI_RESET}", "Run until the end of current transaction")
         addHelp("${TERMINAL.ANSI_RED}abort${TERMINAL.ANSI_RESET}", "Terminate the function call")
         commandOutputs.add("")
@@ -574,16 +575,19 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val haveCommandOutput = commandOutputs.isNotEmpty()
         val haveActiveBreakPoint = isBreakPointActive(filePath, activeLines)
 
-        // If we have any breakpoints, always skip individual ops
-        if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
-
         val pauseOnNext = skipOperations.decrementAndGet() <= 0 || haveCommandOutput || haveActiveBreakPoint
 
         val opCount = "- " + String.format(NUMBER_FORMAT, operations.size) + " "
         val options = if (pauseOnNext && !runTillEnd) {
+            val nextSection = if (breakPoints.values.any { it.isNotEmpty() }) {
+                "" + TERMINAL.ANSI_YELLOW + "next" + TERMINAL.ANSI_RESET + " = run till next, "
+            } else {
+                "" + TERMINAL.ANSI_YELLOW + "end" + TERMINAL.ANSI_RESET + " = run till end, "
+            }
+
             "--> " +
                     TERMINAL.ANSI_YELLOW + "[enter]" + TERMINAL.ANSI_RESET + " = next section, " +
-                    TERMINAL.ANSI_YELLOW + "end" + TERMINAL.ANSI_RESET + " = run till end, " +
+                    nextSection +
                     TERMINAL.ANSI_RED + "abort" + TERMINAL.ANSI_RESET + " = terminate, " +
                     TERMINAL.ANSI_YELLOW + "help" + TERMINAL.ANSI_RESET + " = options "
         } else ""
@@ -628,6 +632,13 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
                     enumSet.add(ExceptionalHaltReason.NONE)
                     throw ExceptionalHaltException(enumSet)
+                }
+                input.trim().toLowerCase() == "next" -> {
+                    if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
+                    else {
+                        commandOutputs.add("${TERMINAL.ANSI_CYAN}No breakpoints found${TERMINAL.ANSI_RESET}")
+                        return nextOption(messageFrame, true)
+                    }
                 }
                 input.trim().toLowerCase() == "end" -> {
                     runTillEnd = true
