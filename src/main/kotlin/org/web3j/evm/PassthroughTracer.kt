@@ -63,8 +63,8 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
                 PassthroughTracerContext()
             } else {
                 val source = sb.append(trimmedSourceSection.joinToString("\n")).toString()
-                val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
-                val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
+                val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min()
+                val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset
 
                 PassthroughTracerContext(source, filePath, firstSelectedLine, firstSelectedOffset)
             }
