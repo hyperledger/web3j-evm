@@ -241,7 +241,8 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             from,
             to,
             logs,
-            logsBloom
+            logsBloom,
+            ""
         )
     }
 
