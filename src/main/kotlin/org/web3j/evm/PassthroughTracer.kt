@@ -22,7 +22,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
 
-data class PassthroughTracerContext(val source: String = "", val firstSelectedLine: Int = 0, val firstSelectedOffset: Int = 0)
+data class PassthroughTracerContext(val source: String = "", val filePath: String? = null, val firstSelectedLine: Int? = null, val firstSelectedOffset: Int? = null)
 
 class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
     NullReader()
@@ -43,7 +43,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
     ) {
         if (metaFile != null && metaFile.exists()) {
             val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
-            val (_, sourceSection) = sourceFile
+            val (filePath, sourceSection) = sourceFile
 
             val sb = StringBuilder()
 
@@ -66,7 +66,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
                 val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
                 val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
 
-                PassthroughTracerContext(source, firstSelectedLine, firstSelectedOffset)
+                PassthroughTracerContext(source, filePath, firstSelectedLine, firstSelectedOffset)
             }
         }
 
