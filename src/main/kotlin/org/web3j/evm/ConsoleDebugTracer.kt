@@ -413,7 +413,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     }
 
     private fun showHelp() {
-        addHelp("${TERMINAL.ANSI_YELLOW}[enter]${TERMINAL.ANSI_RESET}", "Continue running until next code section or breakpoint")
+        addHelp("${TERMINAL.ANSI_YELLOW}[enter]${TERMINAL.ANSI_RESET}", "Continue running until next code section")
         addHelp("${TERMINAL.ANSI_YELLOW}[number]${TERMINAL.ANSI_RESET}", "Step forward X number of opcodes")
         addHelp("${TERMINAL.ANSI_YELLOW}next${TERMINAL.ANSI_RESET}", "Run until the next breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}end${TERMINAL.ANSI_RESET}", "Run until the end of current transaction")
