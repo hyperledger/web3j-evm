@@ -444,7 +444,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     fun ethGetBlockTransactionCountByHash(hash: Hash): String {
-        return UInt256.of(blockchain.getBlockByHash(hash).get().body.transactions.count().toLong()).toString()
+        return UInt256.of(blockchain.getBlockByHash(hash).get().body.transactions.count().toLong()).toHexString()
     }
 
     companion object {

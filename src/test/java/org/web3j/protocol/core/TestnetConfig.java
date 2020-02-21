@@ -27,8 +27,8 @@ public class TestnetConfig implements IntegrationTestConfig {
 
     @Override
     public String validBlockHash() {
-        https: // testnet.etherscan.io/block/1627453
-        return "0x9aab56e4d201881259221b0f48f8647a2bc0ab99c2c3f66b1429590c411874de";
+        // genesis block hash
+        return "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
     }
 
     @Override
@@ -39,7 +39,7 @@ public class TestnetConfig implements IntegrationTestConfig {
 
     @Override
     public BigInteger validBlockTransactionCount() {
-        return BigInteger.valueOf(5);
+        return BigInteger.valueOf(0);
     }
 
     @Override
