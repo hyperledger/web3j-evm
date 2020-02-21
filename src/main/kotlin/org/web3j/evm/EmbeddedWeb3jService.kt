@@ -20,6 +20,8 @@ import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService
+import org.web3j.protocol.core.BatchRequest
+import org.web3j.protocol.core.BatchResponse
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
@@ -271,6 +273,14 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
                 return Result().apply { isSyncing = true }
             }
         }
+    }
+
+    override fun sendBatch(p0: BatchRequest?): BatchResponse {
+        throw UnsupportedOperationException("Batch send is not supported")
+    }
+
+    override fun sendBatchAsync(p0: BatchRequest?): CompletableFuture<BatchResponse> {
+        throw UnsupportedOperationException("Batch send is not supported")
     }
 
     override fun <T : Response<*>> sendAsync(request: Request<*, *>, responseType: Class<T>): CompletableFuture<T> {
