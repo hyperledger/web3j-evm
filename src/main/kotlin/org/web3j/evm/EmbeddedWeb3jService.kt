@@ -17,6 +17,7 @@ import java.io.IOException
 import java.math.BigInteger
 import java.util.concurrent.CompletableFuture
 import org.apache.logging.log4j.LogManager
+import org.hyperledger.besu.ethereum.core.Hash
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService
@@ -26,20 +27,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.Transaction
-import org.web3j.protocol.core.methods.response.EthBlock
-import org.web3j.protocol.core.methods.response.EthBlockNumber
-import org.web3j.protocol.core.methods.response.EthCall
-import org.web3j.protocol.core.methods.response.EthEstimateGas
-import org.web3j.protocol.core.methods.response.EthGasPrice
-import org.web3j.protocol.core.methods.response.EthGetBalance
-import org.web3j.protocol.core.methods.response.EthGetCode
-import org.web3j.protocol.core.methods.response.EthGetTransactionCount
-import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt
-import org.web3j.protocol.core.methods.response.EthSendTransaction
-import org.web3j.protocol.core.methods.response.EthSyncing
-import org.web3j.protocol.core.methods.response.NetVersion
-import org.web3j.protocol.core.methods.response.TransactionReceipt
-import org.web3j.protocol.core.methods.response.Web3ClientVersion
+import org.web3j.protocol.core.methods.response.*
 import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
@@ -76,7 +64,7 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
             "eth_getBalance" -> ethGetBalance(request.params)
             "eth_getBlockByHash" -> ethBlockByHash(request.params)
             "eth_getBlockByNumber" -> ethBlockByNumber(request.params)
-            "eth_getBlockTransactionCountByHash" -> throw UnsupportedOperationException(request.method)
+            "eth_getBlockTransactionCountByHash" -> ethGetBlockTransactionCountByHash(request.params)
             "eth_getBlockTransactionCountByNumber" -> throw UnsupportedOperationException(request.method)
             "eth_getCode" -> ethGetCode(request.params)
             "eth_getCompilers" -> throw UnsupportedOperationException(request.method)
@@ -250,6 +238,16 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
 
         return object : EthBlock() {
             override fun getResult(): Block? {
+                return result
+            }
+        }
+    }
+
+    private fun ethGetBlockTransactionCountByHash(params: List<*>): Response<String> {
+        val blockHash = params[0] as String
+        val result = embeddedEthereum.ethGetBlockTransactionCountByHash(Hash.fromHexString(blockHash))
+        return object : EthGetBlockTransactionCountByHash() {
+            override fun getResult(): String {
                 return result
             }
         }

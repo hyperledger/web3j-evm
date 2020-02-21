@@ -443,6 +443,10 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         return worldState.get(Address.fromHexString(w3jAddress.value))?.code?.toString() ?: "0x"
     }
 
+    fun ethGetBlockTransactionCountByHash(hash: Hash): String {
+        return UInt256.of(blockchain.getBlockByHash(hash).get().body.transactions.count().toLong()).toString()
+    }
+
     companion object {
         private fun hexToULong(hex: String): Long {
             return UInt256.fromHexString(hex).toLong()
