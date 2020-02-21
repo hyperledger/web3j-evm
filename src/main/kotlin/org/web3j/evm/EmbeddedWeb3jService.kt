@@ -33,6 +33,7 @@ import org.web3j.protocol.core.methods.response.EthEstimateGas
 import org.web3j.protocol.core.methods.response.EthGasPrice
 import org.web3j.protocol.core.methods.response.EthGetBalance
 import org.web3j.protocol.core.methods.response.EthGetBlockTransactionCountByHash
+import org.web3j.protocol.core.methods.response.EthGetBlockTransactionCountByNumber
 import org.web3j.protocol.core.methods.response.EthGetCode
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt
@@ -78,7 +79,7 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
             "eth_getBlockByHash" -> ethBlockByHash(request.params)
             "eth_getBlockByNumber" -> ethBlockByNumber(request.params)
             "eth_getBlockTransactionCountByHash" -> ethGetBlockTransactionCountByHash(request.params)
-            "eth_getBlockTransactionCountByNumber" -> throw UnsupportedOperationException(request.method)
+            "eth_getBlockTransactionCountByNumber" -> ethGetBlockTransactionCountByNumber(request.params)
             "eth_getCode" -> ethGetCode(request.params)
             "eth_getCompilers" -> throw UnsupportedOperationException(request.method)
             "eth_getFilterChanges" -> throw UnsupportedOperationException(request.method)
@@ -270,6 +271,16 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
         val result = embeddedEthereum.ethGetCode(Address(address), defaultBlockParameter)
 
         return object : EthGetCode() {
+            override fun getResult(): String {
+                return result
+            }
+        }
+    }
+
+    private fun ethGetBlockTransactionCountByNumber(params: List<*>): Response<String> {
+        val blockNumber = Numeric.decodeQuantity(params[0] as String)
+        val result = embeddedEthereum.ethGetBlockTransactionCountByNumber(blockNumber.toLong())
+        return object : EthGetBlockTransactionCountByNumber() {
             override fun getResult(): String {
                 return result
             }

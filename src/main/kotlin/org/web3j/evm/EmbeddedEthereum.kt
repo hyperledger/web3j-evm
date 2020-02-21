@@ -485,6 +485,10 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         return Numeric.encodeQuantity(BigInteger.valueOf(blockchainQueries.getTransactionCount(hash).toLong()))
     }
 
+    fun ethGetBlockTransactionCountByNumber(blockNumber: Long): String {
+        return UInt256.of(blockchain.getBlockByNumber(blockNumber).get().body.transactions.count().toLong()).toString()
+    }
+
     companion object {
         private val LOG = LogManager.getLogger()
 

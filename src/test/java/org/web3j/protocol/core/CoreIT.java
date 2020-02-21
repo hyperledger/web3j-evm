@@ -198,7 +198,6 @@ public class CoreIT {
                 (config.validBlockTransactionCount()));
     }
 
-    @Disabled("Missing RPC")
     @Test
     public void testEthGetBlockTransactionCountByNumber() throws Exception {
         EthGetBlockTransactionCountByNumber ethGetBlockTransactionCountByNumber =
