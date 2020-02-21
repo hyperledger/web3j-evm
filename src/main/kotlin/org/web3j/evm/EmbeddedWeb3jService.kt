@@ -27,7 +27,21 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.Transaction
-import org.web3j.protocol.core.methods.response.*
+import org.web3j.protocol.core.methods.response.EthBlock
+import org.web3j.protocol.core.methods.response.EthBlockNumber
+import org.web3j.protocol.core.methods.response.EthCall
+import org.web3j.protocol.core.methods.response.EthEstimateGas
+import org.web3j.protocol.core.methods.response.EthGasPrice
+import org.web3j.protocol.core.methods.response.EthGetBalance
+import org.web3j.protocol.core.methods.response.EthGetBlockTransactionCountByHash
+import org.web3j.protocol.core.methods.response.EthGetCode
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount
+import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt
+import org.web3j.protocol.core.methods.response.EthSendTransaction
+import org.web3j.protocol.core.methods.response.EthSyncing
+import org.web3j.protocol.core.methods.response.NetVersion
+import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.protocol.core.methods.response.Web3ClientVersion
 import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
@@ -122,9 +136,7 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
 
     private fun ethGasPrice(): Response<String> {
         return object : EthGasPrice() {
-            override fun getResult(): String {
-                return Numeric.encodeQuantity(BigInteger.ONE)
-            }
+            override fun getResult(): String = Numeric.encodeQuantity(BigInteger.ONE)
         }
     }
 
