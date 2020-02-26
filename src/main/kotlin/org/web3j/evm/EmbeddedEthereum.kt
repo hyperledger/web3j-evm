@@ -59,7 +59,6 @@ import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Optional
 import java.util.OptionalLong
 
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
@@ -103,7 +102,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         )
         val metricsSystem = NoOpMetricsSystem()
 
-        protocolContext = ProtocolContext.init(storageProvider, genesisState, protocolSchedule, metricsSystem) { _, _ -> null}
+        protocolContext = ProtocolContext.init(storageProvider, genesisState, protocolSchedule, metricsSystem) { _, _ -> null }
 
         blockchainQueries =
             BlockchainQueries(protocolContext.blockchain, protocolContext.worldStateArchive)
@@ -152,7 +151,6 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .timestamp(System.currentTimeMillis())
             .blockHeaderFunctions(protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).blockHeaderFunctions)
             .transactionsRoot(BodyValidation.transactionsRoot(listOf(transaction)))
-
 
         val processableBlockHeader = blockheaderBuilder
             .buildProcessableBlockHeader()
@@ -212,11 +210,11 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockNumber: OptionalLong = blockParameter.number
         val worldState = when {
             blockNumber.isPresent -> {
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.getBlockHeader(blockNumber.asLong).get().stateRoot).get()            }
+                protocolContext.worldStateArchive.get(protocolContext.blockchain.getBlockHeader(blockNumber.asLong).get().stateRoot).get() }
             blockParameter.isLatest -> {
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.chainHeadHeader.stateRoot).get()            }
+                protocolContext.worldStateArchive.get(protocolContext.blockchain.chainHeadHeader.stateRoot).get() }
             blockParameter.isEarliest -> { // If block parameter is not numeric or latest, it is pending.
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.genesisBlock.header.stateRoot).get()            }
+                protocolContext.worldStateArchive.get(protocolContext.blockchain.genesisBlock.header.stateRoot).get() }
             else -> {
                 // TODO: Besu returns latest instead of pending here see -
                 //  https://github.com/hyperledger/besu/blob/3603f8d14df04434e4477314f51c343d662cc32b/ethereum/api/src/main/java/org/hyperledger/besu/ethereum/api/jsonrpc/internal/methods/AbstractBlockParameterMethod.java#L48
@@ -468,18 +466,18 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockNumber: OptionalLong = blockParameter.number
         return when {
             blockNumber.isPresent -> {
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockNumber.asLong)?.get()?.toString() ?: "0x";
+                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockNumber.asLong)?.get()?.toString() ?: "0x"
             }
             blockParameter.isLatest -> {
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x";
+                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
             blockParameter.isEarliest -> { // If block parameter is not numeric or latest, it is pending.
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), 0)?.get()?.toString() ?: "0x";
+                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), 0)?.get()?.toString() ?: "0x"
             }
             else -> {
                 // TODO: Besu returns latest instead of pending here see -
                 //  https://github.com/hyperledger/besu/blob/3603f8d14df04434e4477314f51c343d662cc32b/ethereum/api/src/main/java/org/hyperledger/besu/ethereum/api/jsonrpc/internal/methods/AbstractBlockParameterMethod.java#L48
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x";
+                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
         }
     }

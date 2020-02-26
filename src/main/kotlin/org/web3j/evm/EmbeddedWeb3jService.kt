@@ -22,7 +22,6 @@ import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.BatchRequest
 import org.web3j.protocol.core.BatchResponse
-import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.Transaction
