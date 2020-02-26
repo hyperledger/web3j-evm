@@ -57,6 +57,7 @@ import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.OptionalLong
@@ -210,15 +211,14 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockNumber: OptionalLong = blockParameter.number
         val worldState = when {
             blockNumber.isPresent -> {
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.getBlockHeader(blockNumber.asLong).get().stateRoot).get() }
+                blockchainQueries.getWorldState(blockNumber.asLong).get() }
             blockParameter.isLatest -> {
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.chainHeadHeader.stateRoot).get() }
-            blockParameter.isEarliest -> { // If block parameter is not numeric or latest, it is pending.
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.genesisBlock.header.stateRoot).get() }
+                blockchainQueries.getWorldState(blockchainQueries.headBlockNumber()).get() }
+            blockParameter.isEarliest -> {
+                blockchainQueries.getWorldState(0).get() }
             else -> {
-                // TODO: Besu returns latest instead of pending here see -
-                //  https://github.com/hyperledger/besu/blob/3603f8d14df04434e4477314f51c343d662cc32b/ethereum/api/src/main/java/org/hyperledger/besu/ethereum/api/jsonrpc/internal/methods/AbstractBlockParameterMethod.java#L48
-                protocolContext.worldStateArchive.get(protocolContext.blockchain.chainHeadHeader.stateRoot).get()
+                // If block parameter is pending but there is no pending state so take latest
+                blockchainQueries.getWorldState(blockchainQueries.headBlockNumber()).get()
             }
         }
         val nonce = worldState.get(Address.fromHexString(w3jAddress.value)).nonce
@@ -302,7 +302,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
 
     fun makeEthCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
-        @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String
+        defaultBlockParameter: String
     ): TransactionProcessor.Result? {
         val nonce = if (web3jTransaction.nonce == null)
             getTransactionCount(
@@ -314,13 +314,12 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
 
         val transaction = Transaction.builder()
             .gasLimit(transactionGasLimitOrDefault(web3jTransaction))
-            // TODO: Better management of defaults..
-            .gasPrice(if (web3jTransaction.gas == null) Wei.of(1) else Wei.of(hexToULong(web3jTransaction.gasPrice)))
+            .gasPrice(Wei.of(Numeric.decodeQuantity(web3jTransaction.gasPrice ?: "0x01")))
             .nonce(nonce)
             .sender(Address.fromHexString(web3jTransaction.from))
             .to(Address.fromHexString(web3jTransaction.to))
-            .payload(if (web3jTransaction.data == null) BytesValue.EMPTY else BytesValue.fromHexString(web3jTransaction.data))
-            .value(if (web3jTransaction.value == null) Wei.ZERO else Wei.of(UInt256.fromHexString(web3jTransaction.value)))
+            .payload(BytesValue.fromHexString(web3jTransaction.data ?: BytesValue.EMPTY.toString()))
+            .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x00")))
             .signature(FAKE_SIGNATURE)
             .build()
 
@@ -464,26 +463,26 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     fun ethGetCode(w3jAddress: org.web3j.abi.datatypes.Address, defaultBlockParameter: String): String {
         val blockParameter = BlockParameter(defaultBlockParameter)
         val blockNumber: OptionalLong = blockParameter.number
+        val besuAddress = Address.fromHexString(w3jAddress.toString())
         return when {
             blockNumber.isPresent -> {
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockNumber.asLong)?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(besuAddress, blockNumber.asLong)?.get()?.toString() ?: "0x"
             }
             blockParameter.isLatest -> {
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(besuAddress, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
-            blockParameter.isEarliest -> { // If block parameter is not numeric or latest, it is pending.
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), 0)?.get()?.toString() ?: "0x"
+            blockParameter.isEarliest -> {
+                blockchainQueries.getCode(besuAddress, 0)?.get()?.toString() ?: "0x"
             }
             else -> {
-                // TODO: Besu returns latest instead of pending here see -
-                //  https://github.com/hyperledger/besu/blob/3603f8d14df04434e4477314f51c343d662cc32b/ethereum/api/src/main/java/org/hyperledger/besu/ethereum/api/jsonrpc/internal/methods/AbstractBlockParameterMethod.java#L48
-                blockchainQueries.getCode(Address.fromHexString(w3jAddress.toString()), blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
+                // If block parameter is pending but there is no pending state so take latest
+                blockchainQueries.getCode(besuAddress, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
         }
     }
 
     fun ethGetBlockTransactionCountByHash(hash: Hash): String {
-        return UInt256.of(blockchain.getBlockByHash(hash).get().body.transactions.count().toLong()).toHexString()
+        return Numeric.encodeQuantity(BigInteger.valueOf(blockchainQueries.getTransactionCount(hash).toLong()))
     }
 
     companion object {
