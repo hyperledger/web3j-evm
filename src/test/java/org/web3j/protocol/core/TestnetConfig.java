@@ -34,7 +34,7 @@ public class TestnetConfig implements IntegrationTestConfig {
     @Override
     public BigInteger validBlock() {
         // https://testnet.etherscan.io/block/71032
-        return BigInteger.valueOf(2000001);
+        return BigInteger.valueOf(0);
     }
 
     @Override
