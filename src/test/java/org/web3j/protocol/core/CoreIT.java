@@ -189,7 +189,6 @@ public class CoreIT {
         assertTrue(ethGetTransactionCount.getTransactionCount().signum() == 1);
     }
 
-    @Disabled("Missing RPC")
     @Test
     public void testEthGetBlockTransactionCountByHash() throws Exception {
         EthGetBlockTransactionCountByHash ethGetBlockTransactionCountByHash =
