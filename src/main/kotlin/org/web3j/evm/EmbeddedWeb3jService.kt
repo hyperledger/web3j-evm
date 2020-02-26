@@ -142,9 +142,9 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
 
     private fun ethGetTransactionCount(params: List<Any>): Response<String> {
         val address = Address(params[0].toString())
-        val defaultBlockParameterName = DefaultBlockParameterName.fromString(params[1].toString())
+        val defaultBlockParameter = params[1].toString()
         val result =
-            Numeric.encodeQuantity(embeddedEthereum.getTransactionCount(address, defaultBlockParameterName))
+            Numeric.encodeQuantity(embeddedEthereum.getTransactionCount(address, defaultBlockParameter))
 
         return object : EthGetTransactionCount() {
             override fun getResult(): String {
