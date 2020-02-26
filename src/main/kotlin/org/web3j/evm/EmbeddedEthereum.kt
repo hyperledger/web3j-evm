@@ -57,6 +57,7 @@ import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.OptionalLong
@@ -483,7 +484,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     fun ethGetBlockTransactionCountByHash(hash: Hash): String {
-        return UInt256.of(blockchain.getBlockByHash(hash).get().body.transactions.count().toLong()).toHexString()
+        return Numeric.encodeQuantity(BigInteger.valueOf(blockchainQueries.getTransactionCount(hash).toLong()))
     }
 
     companion object {
