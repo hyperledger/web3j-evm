@@ -122,6 +122,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .to(Address.fromHexString(web3jTransaction.to))
             .payload(BytesValue.fromHexString(web3jTransaction.data))
             .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
+            .signature(FAKE_SIGNATURE)
             .build()
 
         return processTransaction(transaction)
@@ -180,6 +181,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockHeader = blockheaderBuilder
             .gasUsed(gasUsed)
             .receiptsRoot(BodyValidation.receiptsRoot(listOf(transactionReceipt)))
+            .logsBloom(BodyValidation.logsBloom(listOf(transactionReceipt)))
             .stateRoot(worldState.rootHash())
             .buildBlockHeader()
 
