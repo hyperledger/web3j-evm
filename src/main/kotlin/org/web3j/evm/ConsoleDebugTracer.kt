@@ -95,7 +95,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
     private fun loadContractMeta(file: File): List<ContractMeta> {
         return when {
-            file.isFile && file.name.endsWith(".json") -> {
+            file.isFile && file.name.endsWith(".json") && !file.name.endsWith("meta.json") -> {
                 listOf(Klaxon().parse<ContractMeta>(file) ?: ContractMeta(emptyMap(), emptyList()))
             }
             file.isDirectory -> {
