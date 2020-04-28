@@ -15,6 +15,7 @@ description 'Web3j-evm extension'
 ext {
     web3jVersion = version
     log4jVersion = '2.12.1'
+    logbackVersion = '1.2.3'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
@@ -44,11 +45,11 @@ apply {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation "org.web3j:core:$web3jVersion"
-    implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
-    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-to-slf4j:$log4jVersion"
+    implementation "ch.qos.logback:logback-classic:$logbackVersion"
     implementation "com.google.guava:guava:$guavaVersion"
     implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
@@ -72,9 +73,8 @@ compileTestKotlin {
 jar {
     from {
         configurations.compile.grep {
-            def isBesuLib = it.getParentFile().getName().equals("libs") && (it.getName().startsWith("besu-") || it.getName().startsWith("plugin-"))
-
-            return isBesuLib
+            return it.getParentFile().getName().equals("libs") &&
+                    (it.getName().startsWith("besu-") || it.getName().startsWith("plugin-"))
         }
         .collect {
             it.isDirectory() ? it : zipTree(it)
