@@ -13,12 +13,9 @@
 package org.web3j.evm
 
 import io.reactivex.Flowable
-import java.io.IOException
-import java.math.BigInteger
-import java.util.concurrent.CompletableFuture
-import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.ethereum.core.Hash
 import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.slf4j.LoggerFactory
 import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.BatchRequest
@@ -45,6 +42,9 @@ import org.web3j.protocol.core.methods.response.Web3ClientVersion
 import org.web3j.protocol.websocket.events.Notification
 import org.web3j.utils.Async
 import org.web3j.utils.Numeric
+import java.io.IOException
+import java.math.BigInteger
+import java.util.concurrent.CompletableFuture
 
 class EmbeddedWeb3jService(configuration: Configuration, operationTracer: OperationTracer) : Web3jService {
     private val embeddedEthereum: EmbeddedEthereum = EmbeddedEthereum(configuration, operationTracer)
@@ -325,6 +325,6 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
     }
 
     companion object {
-        private val LOG = LogManager.getLogger()
+        private val LOG = LoggerFactory.getLogger(EmbeddedWeb3jService::class.java)
     }
 }

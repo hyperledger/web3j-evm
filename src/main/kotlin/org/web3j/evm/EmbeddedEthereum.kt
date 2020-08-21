@@ -15,7 +15,6 @@ package org.web3j.evm
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.google.common.io.Resources
-import org.apache.logging.log4j.LogManager
 import org.hyperledger.besu.config.GenesisConfigFile
 import org.hyperledger.besu.config.JsonUtil
 import org.hyperledger.besu.crypto.SECP256K1
@@ -55,6 +54,7 @@ import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
 import org.hyperledger.besu.util.bytes.BytesValue
 import org.hyperledger.besu.util.uint.UInt256
+import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import org.web3j.utils.Numeric
@@ -122,6 +122,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .to(Address.fromHexString(web3jTransaction.to))
             .payload(BytesValue.fromHexString(web3jTransaction.data))
             .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
+            .signature(FAKE_SIGNATURE)
             .build()
 
         return processTransaction(transaction)
@@ -180,6 +181,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockHeader = blockheaderBuilder
             .gasUsed(gasUsed)
             .receiptsRoot(BodyValidation.receiptsRoot(listOf(transactionReceipt)))
+            .logsBloom(BodyValidation.logsBloom(listOf(transactionReceipt)))
             .stateRoot(worldState.rootHash())
             .buildBlockHeader()
 
@@ -490,7 +492,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     companion object {
-        private val LOG = LogManager.getLogger()
+        private val LOG = LoggerFactory.getLogger(EmbeddedEthereum::class.java)
 
         private fun hexToULong(hex: String): Long {
             return UInt256.fromHexString(hex).toLong()

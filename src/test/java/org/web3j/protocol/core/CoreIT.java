@@ -102,7 +102,7 @@ public class CoreIT {
     @Test
     public void testNetPeerCount() throws Exception {
         NetPeerCount netPeerCount = web3j.netPeerCount().send();
-        assertTrue(netPeerCount.getQuantity().signum() == 1);
+        assertEquals(1, netPeerCount.getQuantity().signum());
     }
 
     @Disabled("Missing RPC")
@@ -143,7 +143,7 @@ public class CoreIT {
     @Test
     public void testEthGasPrice() throws Exception {
         EthGasPrice ethGasPrice = web3j.ethGasPrice().send();
-        assertTrue(ethGasPrice.getGasPrice().signum() == 1);
+        assertEquals(1, ethGasPrice.getGasPrice().signum());
     }
 
     @Disabled("Missing RPC")
@@ -165,7 +165,7 @@ public class CoreIT {
         EthGetBalance ethGetBalance =
                 web3j.ethGetBalance(config.validAccount(), DefaultBlockParameter.valueOf("latest"))
                         .send();
-        assertTrue(ethGetBalance.getBalance().signum() == 1);
+        assertEquals(1, ethGetBalance.getBalance().signum());
     }
 
     @Disabled("Missing RPC")
@@ -186,7 +186,7 @@ public class CoreIT {
                 web3j.ethGetTransactionCount(
                                 config.validAccount(), DefaultBlockParameter.valueOf("latest"))
                         .send();
-        assertTrue(ethGetTransactionCount.getTransactionCount().signum() == 1);
+        assertEquals(1, ethGetTransactionCount.getTransactionCount().signum());
     }
 
     @Test
@@ -277,7 +277,7 @@ public class CoreIT {
     @Test
     public void testEthEstimateGas() throws Exception {
         EthEstimateGas ethEstimateGas = web3j.ethEstimateGas(config.buildTransaction(web3j)).send();
-        assertTrue(ethEstimateGas.getAmountUsed().signum() == 1);
+        assertEquals(1, ethEstimateGas.getAmountUsed().signum());
     }
 
     @Disabled("Missing test setup")
