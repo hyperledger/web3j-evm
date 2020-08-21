@@ -72,7 +72,7 @@ compileTestKotlin {
 
 jar {
     from {
-        configurations.compile.grep {
+        configurations.compileClasspath.grep {
             return it.getParentFile().getName().equals("libs") &&
                     (it.getName().startsWith("besu-") || it.getName().startsWith("plugin-"))
         }
