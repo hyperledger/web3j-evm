@@ -12,6 +12,7 @@
  */
 package org.web3j.evm
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.google.common.io.Resources
@@ -81,7 +82,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             val configRoot = JsonUtil.normalizeKeys(JsonUtil.objectNodeFromString(jsonString, false))
             val objectNode = ObjectNode(JsonNodeFactory(false))
             objectNode.put("balance", "${Wei.fromEth(configuration.ethFund)}")
-            JsonUtil.getObjectNode(configRoot, "alloc").get().set(configuration.selfAddress.value, objectNode)
+            JsonUtil.getObjectNode(configRoot, "alloc").get().set<JsonNode>(configuration.selfAddress.value, objectNode as JsonNode)
             GenesisConfigFile.fromConfig(configRoot)
         } else
             GenesisConfigFile.fromConfig(
