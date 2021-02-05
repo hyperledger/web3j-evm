@@ -16,7 +16,7 @@ import java.util.Optional
 import org.hyperledger.besu.ethereum.core.Gas
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
-import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
+// import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import org.web3j.evm.utils.NullReader
 import java.io.BufferedReader
 import java.io.File
@@ -36,7 +36,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
     }
 
     @Throws(ExceptionalHaltException::class)
-    override fun traceExecution(
+    fun traceExecution(
         messageFrame: MessageFrame,
         optional: Optional<Gas>,
         executeOperation: OperationTracer.ExecuteOperation

@@ -20,7 +20,6 @@ import java.io.InputStreamReader
 import java.io.FileReader
 import java.util.SortedMap
 import java.util.TreeMap
-import java.util.Optional
 import java.util.EnumSet
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
@@ -28,11 +27,10 @@ import kotlin.math.min
 import kotlin.math.max
 import kotlin.collections.HashMap
 import kotlin.collections.ArrayList
-import org.hyperledger.besu.ethereum.core.Gas
 import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
-import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
+// import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import com.beust.klaxon.Klaxon
 
 private data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
@@ -300,7 +298,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     protected fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, SourceFile> {
         val pc = messageFrame.pc
         val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
-        val bytecode = messageFrame.code.bytes.toUnprefixedString()
+        val bytecode = toUnprefixedString(messageFrame.code.bytes)
         val (idxSource, pcSourceMappings) = byteCodeContractMapping.getOrPut(Pair(bytecode, contractCreation)) {
             loadContractMapping(
                 contractCreation,
@@ -319,6 +317,11 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         } else lastSourceFile
 
         return Pair(pcSourceMappings[pc], outputSourceFile)
+    }
+
+    private fun toUnprefixedString(bytes: org.apache.tuweni.bytes.Bytes): String {
+        val prefixedHex = toString()
+        return if (prefixedHex.startsWith("0x")) prefixedHex.substring(2) else prefixedHex
     }
 
     protected fun mergeSourceContent(sourceContent: SortedMap<Int, SourceLine>): List<String> {
@@ -425,24 +428,6 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         addHelp("${TERMINAL.ANSI_YELLOW}break [file name] [line number]${TERMINAL.ANSI_RESET}", "Add or remove a breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}break list${TERMINAL.ANSI_RESET}", "Show all breakpoint")
         addHelp("${TERMINAL.ANSI_YELLOW}break clear${TERMINAL.ANSI_RESET}", "Remove all breakpoint")
-    }
-
-    @Throws(ExceptionalHaltException::class)
-    override fun traceExecution(
-        messageFrame: MessageFrame,
-        optional: Optional<Gas>,
-        executeOperation: OperationTracer.ExecuteOperation
-    ) {
-        val finalOutput = nextOption(messageFrame)
-
-        executeOperation.execute()
-
-        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
-            skipOperations.set(0)
-            operations.clear()
-            runTillEnd = false
-            println(finalOutput)
-        }
     }
 
     @Throws(ExceptionalHaltException::class)
@@ -631,7 +616,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 input.trim().toLowerCase() == "abort" -> {
                     val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
                     enumSet.add(ExceptionalHaltReason.NONE)
-                    throw ExceptionalHaltException(enumSet)
+                    throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
                 }
                 input.trim().toLowerCase() == "next" -> {
                     if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
@@ -675,7 +660,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         } catch (ex: IOException) {
             val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
             enumSet.add(ExceptionalHaltReason.NONE)
-            throw ExceptionalHaltException(enumSet)
+            throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
         }
     }
 
@@ -689,4 +674,30 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             return TERMINAL.values().fold(input) { output, t -> output.replace(t.toString(), "") }
         }
     }
+
+    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
+        val finalOutput = nextOption(messageFrame)
+
+        executeOperation?.execute()
+
+        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
+            skipOperations.set(0)
+            operations.clear()
+            runTillEnd = false
+            println(finalOutput)
+        }
+    }
+/*
+    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
+        val finalOutput = nextOption(messageFrame)
+
+        executeOperation.execute()
+
+        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
+            skipOperations.set(0)
+            operations.clear()
+            runTillEnd = false
+            println(finalOutput)
+        }
+    }*/
 }

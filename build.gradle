@@ -8,18 +8,21 @@ plugins {
     id "de.marcphilipp.nexus-publish" version "0.4.0"
     id 'org.jetbrains.kotlin.jvm' version '1.3.50'
     id "de.undercouch.download" version "4.0.0"
+    id "com.github.johnrengelman.shadow" version "6.1.0"
 }
-
+apply plugin: 'com.github.johnrengelman.shadow'
 description 'Web3j-evm extension'
 
 ext {
-    web3jVersion = version
+    web3jVersion = '4.8.4'
     log4jVersion = '2.12.1'
     logbackVersion = '1.2.3'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
     kotlinVersion = '1.3.61'
+    besuPluginVersion = '20.10.2'
+    besuInternalVersion = '20.10.2'
 }
 
 apply {
@@ -36,7 +39,7 @@ apply {
         download {
             src "https://raw.githubusercontent.com/web3j/build-tools/master/gradle/$buildScript/build.gradle"
             dest "$rootDir/gradle/$buildScript/build.gradle"
-            overwrite true
+            overwrite false
             quiet true
             onlyIfModified true
         }
@@ -45,8 +48,6 @@ apply {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     implementation "org.web3j:core:$web3jVersion"
     implementation "org.apache.logging.log4j:log4j-to-slf4j:$log4jVersion"
     implementation "ch.qos.logback:logback-classic:$logbackVersion"
@@ -56,6 +57,19 @@ dependencies {
     implementation "com.beust:klaxon:$klaxonVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion"
+    implementation "org.hyperledger.besu.internal:api:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:config:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:core:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:crypto:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:rlp:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:kvstore:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:metrics-core:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:trie:$besuInternalVersion"
+    implementation "org.hyperledger.besu.internal:util:$besuInternalVersion"
+    implementation 'org.hyperledger.besu:bls12-381:0.3.0'
+    implementation 'org.hyperledger.besu:secp256k1:0.3.0'
+
 }
 
 compileKotlin {
@@ -69,15 +83,18 @@ compileTestKotlin {
         jvmTarget = "1.8"
     }
 }
-
+/*
 jar {
     from {
-        configurations.compileClasspath.grep {
-            return it.getParentFile().getName().equals("libs") &&
-                    (it.getName().startsWith("besu-") || it.getName().startsWith("plugin-"))
+
+
+      configurations.compileClasspath.grep {
+          return it.getPath().contains("org.hyperledger.besu")
         }
         .collect {
+            println it.getName()
             it.isDirectory() ? it : zipTree(it)
         }
     }
 }
+*/

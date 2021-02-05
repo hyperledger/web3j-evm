@@ -3,4 +3,8 @@ repositories {
     jcenter()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url "https://hyperledger-org.bintray.com/besu-repo" }
+    maven { url "https://consensys.bintray.com/pegasys-repo" }
+    maven { url "https://repo.spring.io/libs-release" }
+    maven { url "https://dl.bintray.com/open-telemetry/maven" }
 }
