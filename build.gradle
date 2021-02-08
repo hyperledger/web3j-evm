@@ -8,9 +8,8 @@ plugins {
     id "de.marcphilipp.nexus-publish" version "0.4.0"
     id 'org.jetbrains.kotlin.jvm' version '1.3.50'
     id "de.undercouch.download" version "4.0.0"
-    id "com.github.johnrengelman.shadow" version "6.1.0"
 }
-apply plugin: 'com.github.johnrengelman.shadow'
+
 description 'Web3j-evm extension'
 
 ext {
@@ -83,18 +82,3 @@ compileTestKotlin {
         jvmTarget = "1.8"
     }
 }
-/*
-jar {
-    from {
-
-
-      configurations.compileClasspath.grep {
-          return it.getPath().contains("org.hyperledger.besu")
-        }
-        .collect {
-            println it.getName()
-            it.isDirectory() ? it : zipTree(it)
-        }
-    }
-}
-*/
