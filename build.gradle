@@ -68,7 +68,6 @@ dependencies {
     implementation "org.hyperledger.besu.internal:util:$besuInternalVersion"
     implementation 'org.hyperledger.besu:bls12-381:0.3.0'
     implementation 'org.hyperledger.besu:secp256k1:0.3.0'
-
 }
 
 compileKotlin {
