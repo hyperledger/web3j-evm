@@ -30,7 +30,6 @@ import kotlin.collections.ArrayList
 import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
-// import org.hyperledger.besu.ethereum.vm.ehalt.ExceptionalHaltException
 import com.beust.klaxon.Klaxon
 
 private data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
@@ -687,17 +686,4 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             println(finalOutput)
         }
     }
-/*
-    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
-        val finalOutput = nextOption(messageFrame)
-
-        executeOperation.execute()
-
-        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
-            skipOperations.set(0)
-            operations.clear()
-            runTillEnd = false
-            println(finalOutput)
-        }
-    }*/
 }
