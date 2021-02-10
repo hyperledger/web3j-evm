@@ -20,7 +20,6 @@ import java.io.InputStreamReader
 import java.io.FileReader
 import java.util.SortedMap
 import java.util.TreeMap
-import java.util.EnumSet
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -319,7 +318,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     }
 
     private fun toUnprefixedString(bytes: org.apache.tuweni.bytes.Bytes): String {
-        val prefixedHex = toString()
+        val prefixedHex = bytes.toString()
         return if (prefixedHex.startsWith("0x")) prefixedHex.substring(2) else prefixedHex
     }
 
@@ -613,8 +612,6 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     breakPoints.clear()
                 }
                 input.trim().toLowerCase() == "abort" -> {
-                    val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
-                    enumSet.add(ExceptionalHaltReason.NONE)
                     throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
                 }
                 input.trim().toLowerCase() == "next" -> {
@@ -657,8 +654,6 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         } catch (ex: NumberFormatException) {
             return nextOption(messageFrame, true)
         } catch (ex: IOException) {
-            val enumSet = EnumSet.allOf(ExceptionalHaltReason::class.java)
-            enumSet.add(ExceptionalHaltReason.NONE)
             throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
         }
     }

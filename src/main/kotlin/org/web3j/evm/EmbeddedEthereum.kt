@@ -63,12 +63,10 @@ import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStatePreimageKeyValueStorage
-
 import org.hyperledger.besu.ethereum.worldstate.DefaultWorldStateArchive
 import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage
 import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult
 import java.util.Optional
-
 import kotlin.collections.HashMap
 
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
@@ -115,7 +113,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val worldStateArchive: WorldStateArchive = DefaultWorldStateArchive(
             worldStateStorage, WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
         )
-        protocolContext = ProtocolContext.init(storageProvider, worldStateArchive, genesisState, protocolSchedule, metricsSystem, { storageProvider, worldStateArchive -> }, 6L)
+        protocolContext = ProtocolContext.init(storageProvider, worldStateArchive, genesisState, protocolSchedule, metricsSystem, { _, _ -> }, 6L)
 
         blockchainQueries =
             BlockchainQueries(protocolContext.blockchain, protocolContext.worldStateArchive)
@@ -317,11 +315,11 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     fun makeEthCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
         defaultBlockParameter: String
-    ): TransactionProcessingResult {
+    ): TransactionProcessingResult? {
         val nonce = if (web3jTransaction.nonce == null)
             getTransactionCount(
                 org.web3j.abi.datatypes.Address(web3jTransaction.from),
-                "latest"
+                defaultBlockParameter
             ).toLong()
         else
             hexToULong(web3jTransaction.nonce)
@@ -340,7 +338,8 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val worldState =
             protocolContext.worldStateArchive.getMutable(protocolContext.blockchain.chainHeadHeader.stateRoot).get()
         val worldStateUpdater = worldState.updater()
-        val result: TransactionProcessingResult = protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).transactionProcessor.processTransaction(
+
+        return protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).transactionProcessor.processTransaction(
             protocolContext.blockchain,
             worldStateUpdater,
             genesisState.block.header,
@@ -350,8 +349,6 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             BlockHashLookup(protocolContext.blockchain.chainHeadHeader, protocolContext.blockchain),
             false
         )
-
-        return result
     }
 
     fun ethCall(

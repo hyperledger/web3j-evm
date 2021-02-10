@@ -22,6 +22,8 @@ ext {
     kotlinVersion = '1.3.61'
     besuPluginVersion = '20.10.2'
     besuInternalVersion = '20.10.2'
+    besuInternalVersion = '20.10.2'
+    besuCryptoDepVersion = '0.3.0'
 }
 
 apply {
@@ -66,8 +68,8 @@ dependencies {
     implementation "org.hyperledger.besu.internal:metrics-core:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:trie:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:util:$besuInternalVersion"
-    implementation 'org.hyperledger.besu:bls12-381:0.3.0'
-    implementation 'org.hyperledger.besu:secp256k1:0.3.0'
+    implementation "org.hyperledger.besu:bls12-381:$besuCryptoDepVersion"
+    implementation "org.hyperledger.besu:secp256k1:$besuCryptoDepVersion"
 }
 
 compileKotlin {
