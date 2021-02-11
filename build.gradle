@@ -22,7 +22,6 @@ ext {
     kotlinVersion = '1.3.61'
     besuPluginVersion = '20.10.2'
     besuInternalVersion = '20.10.2'
-    besuInternalVersion = '20.10.2'
     besuCryptoDepVersion = '0.3.0'
 }
 
