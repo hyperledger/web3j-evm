@@ -45,23 +45,29 @@ import org.hyperledger.besu.ethereum.mainnet.BodyValidation
 import org.hyperledger.besu.ethereum.mainnet.HeaderValidationMode
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
-import org.hyperledger.besu.ethereum.mainnet.TransactionProcessor
 import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStorageProvider
+import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
+import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage
 import org.hyperledger.besu.ethereum.vm.BlockHashLookup
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
-import org.hyperledger.besu.util.bytes.BytesValue
-import org.hyperledger.besu.util.uint.UInt256
+import org.apache.tuweni.bytes.Bytes
+import org.apache.tuweni.units.bigints.UInt256
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.OptionalLong
+import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStatePreimageKeyValueStorage
+import org.hyperledger.besu.ethereum.worldstate.DefaultWorldStateArchive
+import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage
+import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult
+import java.util.Optional
+import kotlin.collections.HashMap
 
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
 
@@ -73,8 +79,8 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     private val blockchainQueries: BlockchainQueries
     private val miningBeneficiary: Address
     private val blockResultFactory: BlockResultFactory
-    private val protocolContext: ProtocolContext<Void?>
-    private val protocolSchedule: ProtocolSchedule<Void?>
+    private val protocolContext: ProtocolContext
+    private val protocolSchedule: ProtocolSchedule
 
     init {
         val genesisConfig = if (configuration.genesisFileUrl == null) {
@@ -95,16 +101,19 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         protocolSchedule = MainnetProtocolSchedule.fromConfig(genesisConfig.configOptions)
         genesisState = GenesisState.fromConfig(genesisConfig, protocolSchedule)
 
-        val storageProvider = KeyValueStorageProvider(
-            InMemoryKeyValueStorage(),
-            InMemoryKeyValueStorage(),
-            InMemoryKeyValueStorage(),
+        val storageProvider = KeyValueStorageProvider({ InMemoryKeyValueStorage() },
             InMemoryKeyValueStorage(),
             false
         )
         val metricsSystem = NoOpMetricsSystem()
 
-        protocolContext = ProtocolContext.init(storageProvider, genesisState, protocolSchedule, metricsSystem) { _, _ -> null }
+        val hashValueStore: Map<Bytes, ByteArray> = HashMap()
+        val stateStorage: InMemoryKeyValueStorage = TestInMemoryStorage(hashValueStore)
+        val worldStateStorage: WorldStateStorage = WorldStateKeyValueStorage(stateStorage)
+        val worldStateArchive: WorldStateArchive = DefaultWorldStateArchive(
+            worldStateStorage, WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
+        )
+        protocolContext = ProtocolContext.init(storageProvider, worldStateArchive, genesisState, protocolSchedule, metricsSystem, { _, _ -> }, 6L)
 
         blockchainQueries =
             BlockchainQueries(protocolContext.blockchain, protocolContext.worldStateArchive)
@@ -121,7 +130,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .nonce(hexToULong(web3jTransaction.nonce))
             .sender(Address.fromHexString(web3jTransaction.from))
             .to(Address.fromHexString(web3jTransaction.to))
-            .payload(BytesValue.fromHexString(web3jTransaction.data))
+            .payload(Bytes.fromHexString(web3jTransaction.data))
             .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
             .signature(FAKE_SIGNATURE)
             .build()
@@ -130,7 +139,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     fun processTransaction(signedTransactionData: String): String {
-        val transaction = Transaction.readFrom(RLP.input(BytesValue.fromHexString(signedTransactionData)))
+        val transaction = Transaction.readFrom(RLP.input(Bytes.fromHexString(signedTransactionData)))
         return processTransaction(transaction)
     }
 
@@ -147,7 +156,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .gasLimit(protocolContext.blockchain.chainHeadHeader.gasLimit)
             .ommersHash(Hash.EMPTY_LIST_HASH)
             .logsBloom(LogsBloomFilter.empty())
-            .extraData(BytesValue.EMPTY)
+            .extraData(Bytes.EMPTY)
             .mixHash(Hash.EMPTY)
             .parentHash(protocolContext.blockchain.chainHeadHash)
             .number(protocolContext.blockchain.chainHeadBlockNumber + 1)
@@ -177,7 +186,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
 
         val gasUsed = transaction.gasLimit - result.gasRemaining
 
-        val transactionReceipt = protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).transactionReceiptFactory.create(result, worldState, gasUsed)
+        val transactionReceipt = protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).transactionReceiptFactory.create(transaction.type, result, worldState, gasUsed)
 
         val blockHeader = blockheaderBuilder
             .gasUsed(gasUsed)
@@ -192,7 +201,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
 
         protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).blockImporter.importBlock(protocolContext, block, HeaderValidationMode.NONE)
 
-        return transaction.hash.hexString
+        return transaction.hash.toHexString()
     }
 
     fun rewardMiner(
@@ -211,10 +220,10 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         defaultBlockParameter: String
     ): BigInteger {
         val blockParameter = BlockParameter(defaultBlockParameter)
-        val blockNumber: OptionalLong = blockParameter.number
+        val blockNumber: Optional<Long> = blockParameter.number
         val worldState = when {
             blockNumber.isPresent -> {
-                blockchainQueries.getWorldState(blockNumber.asLong).get() }
+                blockchainQueries.getWorldState(blockNumber.get()).get() }
             blockParameter.isLatest -> {
                 blockchainQueries.getWorldState(blockchainQueries.headBlockNumber()).get() }
             blockParameter.isEarliest -> {
@@ -306,11 +315,11 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     fun makeEthCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
         defaultBlockParameter: String
-    ): TransactionProcessor.Result? {
+    ): TransactionProcessingResult? {
         val nonce = if (web3jTransaction.nonce == null)
             getTransactionCount(
                 org.web3j.abi.datatypes.Address(web3jTransaction.from),
-                "latest"
+                defaultBlockParameter
             ).toLong()
         else
             hexToULong(web3jTransaction.nonce)
@@ -321,7 +330,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .nonce(nonce)
             .sender(Address.fromHexString(web3jTransaction.from))
             .to(Address.fromHexString(web3jTransaction.to))
-            .payload(BytesValue.fromHexString(web3jTransaction.data ?: BytesValue.EMPTY.toString()))
+            .payload(Bytes.fromHexString(web3jTransaction.data ?: Bytes.EMPTY.toString()))
             .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x00")))
             .signature(FAKE_SIGNATURE)
             .build()
@@ -329,7 +338,8 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val worldState =
             protocolContext.worldStateArchive.getMutable(protocolContext.blockchain.chainHeadHeader.stateRoot).get()
         val worldStateUpdater = worldState.updater()
-        val result = protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).transactionProcessor.processTransaction(
+
+        return protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).transactionProcessor.processTransaction(
             protocolContext.blockchain,
             worldStateUpdater,
             genesisState.block.header,
@@ -339,8 +349,6 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             BlockHashLookup(protocolContext.blockchain.chainHeadHeader, protocolContext.blockchain),
             false
         )
-
-        return result
     }
 
     fun ethCall(
@@ -348,7 +356,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         defaultBlockParameter: String
     ): String {
         // TODO error case..? See EthCall in Besu..
-        return makeEthCall(web3jTransaction, defaultBlockParameter)!!.output.hexString
+        return makeEthCall(web3jTransaction, defaultBlockParameter)!!.output.toHexString()
     }
 
     fun estimateGas(
@@ -465,11 +473,11 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
 
     fun ethGetCode(w3jAddress: org.web3j.abi.datatypes.Address, defaultBlockParameter: String): String {
         val blockParameter = BlockParameter(defaultBlockParameter)
-        val blockNumber: OptionalLong = blockParameter.number
+        val blockNumber: Optional<Long> = blockParameter.number
         val besuAddress = Address.fromHexString(w3jAddress.toString())
         return when {
             blockNumber.isPresent -> {
-                blockchainQueries.getCode(besuAddress, blockNumber.asLong)?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(besuAddress, blockNumber.get())?.get()?.toString() ?: "0x"
             }
             blockParameter.isLatest -> {
                 blockchainQueries.getCode(besuAddress, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
@@ -500,7 +508,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         }
 
         private fun longToHex(value: Long): String {
-            return UInt256.of(value).toHexString()
+            return UInt256.valueOf(value).toHexString()
         }
 
         private fun transactionGasLimitOrDefault(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): Long {
@@ -508,4 +516,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             return if (web3jTransaction.gas == null) 10_000_000L else hexToULong(web3jTransaction.gas)
         }
     }
+
+    private class TestInMemoryStorage(hashValueStore: Map<Bytes, ByteArray>) :
+        InMemoryKeyValueStorage(hashValueStore)
 }
