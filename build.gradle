@@ -82,3 +82,15 @@ compileTestKotlin {
         jvmTarget = "1.8"
     }
 }
+
+jar {
+    from {
+        configurations.compileClasspath.grep {
+            return it.getParentFile().getName().equals("libs") &&
+                    (it.getName().startsWith("besu-") || it.getName().startsWith("plugin-"))
+        }
+        .collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
