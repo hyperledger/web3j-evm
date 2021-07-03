@@ -12,8 +12,6 @@
  */
 package org.web3j.evm
 
-import java.util.Optional
-import org.hyperledger.besu.ethereum.core.Gas
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.web3j.evm.utils.NullReader
@@ -35,11 +33,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
     }
 
     @Throws(ExceptionalHaltException::class)
-    fun traceExecution(
-        messageFrame: MessageFrame,
-        optional: Optional<Gas>,
-        executeOperation: OperationTracer.ExecuteOperation
-    ) {
+    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
         if (metaFile != null && metaFile.exists()) {
             val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
             val (filePath, sourceSection) = sourceFile
@@ -69,6 +63,6 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
             }
         }
 
-        executeOperation.execute()
+        executeOperation?.execute()
     }
 }

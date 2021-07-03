@@ -18,7 +18,7 @@ ext {
     logbackVersion = '1.2.3'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
-    klaxonVersion = '5.0.1'
+    klaxonVersion = '5.5'
     kotlinVersion = '1.4.10'
     besuPluginVersion = '20.10.2'
     besuInternalVersion = '20.10.2'
@@ -80,5 +80,12 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+}
+
+jar {
+    into("META-INF/maven/${project.group}/${project.name}") {
+        from generatePomFileForMavenPublication
+        rename { it.replace('pom-default.xml', 'pom.xml') }
     }
 }

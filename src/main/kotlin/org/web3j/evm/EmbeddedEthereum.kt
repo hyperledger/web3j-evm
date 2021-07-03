@@ -98,7 +98,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
                 )
             )
 
-        protocolSchedule = MainnetProtocolSchedule.fromConfig(genesisConfig.configOptions)
+        protocolSchedule = MainnetProtocolSchedule.fromConfig(genesisConfig.configOptions, true)
         genesisState = GenesisState.fromConfig(genesisConfig, protocolSchedule)
 
         val storageProvider = KeyValueStorageProvider({ InMemoryKeyValueStorage() },
@@ -259,6 +259,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val to = result.to
         val logs = result.logs.map(this::mapTransactionReceiptLog)
         val logsBloom = result.logsBloom
+        val revertReason = result.revertReason
 
         return TransactionReceipt(
             transactionHash,
@@ -274,7 +275,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             to,
             logs,
             logsBloom,
-            ""
+            revertReason
         )
     }
 
