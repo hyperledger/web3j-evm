@@ -160,7 +160,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .mixHash(Hash.EMPTY)
             .parentHash(protocolContext.blockchain.chainHeadHash)
             .number(protocolContext.blockchain.chainHeadBlockNumber + 1)
-            .timestamp(System.currentTimeMillis())
+            .timestamp(System.currentTimeMillis() / 1000)
             .blockHeaderFunctions(protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).blockHeaderFunctions)
             .transactionsRoot(BodyValidation.transactionsRoot(listOf(transaction)))
 
