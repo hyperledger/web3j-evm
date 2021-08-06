@@ -20,8 +20,9 @@ ext {
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
     kotlinVersion = '1.4.10'
-    besuPluginVersion = '20.10.2'
-    besuInternalVersion = '20.10.2'
+    descoveryVersion = '0.4.5'
+    besuPluginVersion = '21.7.2'
+    besuInternalVersion = '21.7.2'
     besuCryptoDepVersion = '0.3.0'
 }
 
@@ -57,6 +58,7 @@ dependencies {
     implementation "com.beust:klaxon:$klaxonVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    implementation "tech.pegasys.discovery:discovery:$descoveryVersion"
     implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion"
     implementation "org.hyperledger.besu.internal:api:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:config:$besuInternalVersion"
