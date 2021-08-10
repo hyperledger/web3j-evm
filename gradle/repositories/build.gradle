@@ -3,7 +3,15 @@ repositories {
     jcenter()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-    maven { url "https://hyperledger.jfrog.io/artifactory/besu-maven/" }
+    maven {
+        url "https://hyperledger.jfrog.io/artifactory/besu-maven/"
+        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger/besu/plugin-api/21.7.2/"
+        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-maven/org/hyperledger/besu/internal/besu/21.7.2/"
+    }
+    maven {
+        url "https://hyperledger.jfrog.io/artifactory/besu-binaries/"
+        artifactUrls "https://hyperledger.jfrog.io/artifactory/besu-binaries/besu/21.7.2/"
+    }
     maven { url "https://artifacts.consensys.net/public/maven/maven/" }
 
 }

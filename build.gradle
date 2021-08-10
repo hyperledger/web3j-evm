@@ -13,14 +13,13 @@ plugins {
 description 'Web3j-evm extension'
 
 ext {
-    web3jVersion = '4.8.4'
+    web3jVersion = '4.8.7'
     log4jVersion = '2.12.1'
     logbackVersion = '1.2.3'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
     kotlinVersion = '1.4.10'
-    descoveryVersion = '0.4.5'
     besuPluginVersion = '21.7.2'
     besuInternalVersion = '21.7.2'
     besuCryptoDepVersion = '0.3.0'
@@ -58,7 +57,6 @@ dependencies {
     implementation "com.beust:klaxon:$klaxonVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    implementation "tech.pegasys.discovery:discovery:$descoveryVersion"
     implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion"
     implementation "org.hyperledger.besu.internal:api:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:config:$besuInternalVersion"
@@ -72,6 +70,7 @@ dependencies {
     implementation "org.hyperledger.besu:bls12-381:$besuCryptoDepVersion"
     implementation "org.hyperledger.besu:secp256k1:$besuCryptoDepVersion"
 }
+
 
 compileKotlin {
     kotlinOptions {
