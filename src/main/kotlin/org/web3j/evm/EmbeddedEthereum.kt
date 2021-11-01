@@ -23,13 +23,29 @@ import org.hyperledger.besu.config.JsonUtil
 import org.hyperledger.besu.crypto.SECPSignature
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.BlockParameter
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.*
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResultFactory
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionCompleteResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionHashResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptLogResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
-import org.hyperledger.besu.ethereum.core.*
+import org.hyperledger.besu.ethereum.core.Address
+import org.hyperledger.besu.ethereum.core.Block
+import org.hyperledger.besu.ethereum.core.BlockBody
+import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder
+import org.hyperledger.besu.ethereum.core.Hash
+import org.hyperledger.besu.ethereum.core.LogsBloomFilter
+import org.hyperledger.besu.ethereum.core.MutableWorldState
+import org.hyperledger.besu.ethereum.core.Transaction
+import org.hyperledger.besu.ethereum.core.Wei
+import org.hyperledger.besu.ethereum.core.WorldUpdater
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
@@ -53,7 +69,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.*
+import java.util.Optional
 
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
 
@@ -127,7 +143,6 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         miningBeneficiary = Address.ZERO
         blockResultFactory = BlockResultFactory()
     }
-
 
     fun processTransaction(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): String {
         val transaction = Transaction.builder()
