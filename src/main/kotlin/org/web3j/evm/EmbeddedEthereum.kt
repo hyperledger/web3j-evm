@@ -502,7 +502,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockParameter = BlockParameter(defaultBlockParameter)
         val blockNumber: Optional<Long> = blockParameter.number
         val besuAddress = Address.fromHexString(w3jAddress.toString())
-        println(blockchainQueries.headBlockNumber())
+
         return when {
             blockNumber.isPresent -> {
                 blockchainQueries.getCode(besuAddress, blockNumber.get())?.get()?.toString() ?: "0x"
