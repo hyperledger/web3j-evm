@@ -22,15 +22,18 @@ import org.hyperledger.besu.config.GenesisConfigFile
 import org.hyperledger.besu.config.JsonUtil
 import org.hyperledger.besu.crypto.SECPSignature
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory
-import org.hyperledger.besu.ethereum.ProtocolContext
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.BlockParameter
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.*
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
+import org.hyperledger.besu.ethereum.chain.MutableBlockchain
 import org.hyperledger.besu.ethereum.core.*
-import org.hyperledger.besu.ethereum.mainnet.*
+import org.hyperledger.besu.ethereum.mainnet.BodyValidation
+import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
+import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
+import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
 import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStorageProvider
@@ -50,7 +53,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Optional
+import java.util.*
 
 class EmbeddedEthereum(configuration: Configuration, private val operationTracer: OperationTracer) {
 
@@ -66,8 +69,12 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     private val blockchainQueries: BlockchainQueries
     private val miningBeneficiary: Address
     private val blockResultFactory: BlockResultFactory
-    private val protocolContext: ProtocolContext
+
+    private val worldState: MutableWorldState
+    private val worldStateArchive: WorldStateArchive
+    private val worldStateUpdater: WorldUpdater
     private val protocolSchedule: ProtocolSchedule
+    private val mutableBlockChain: MutableBlockchain
 
     init {
         val genesisConfig = if (configuration.genesisFileUrl == null) {
@@ -99,29 +106,25 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val hashValueStore: Map<Bytes, ByteArray> = HashMap()
         val stateStorage: InMemoryKeyValueStorage = TestInMemoryStorage(hashValueStore)
         val worldStateStorage: WorldStateStorage = WorldStateKeyValueStorage(stateStorage)
-        val worldStateArchive: WorldStateArchive = DefaultWorldStateArchive(
+        worldStateArchive = DefaultWorldStateArchive(
             worldStateStorage, WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
         )
 
-        val block = GenesisState.fromConfig(genesisConfig, protocolSchedule).block
-        val mutableBlockChain =
+        worldState = worldStateArchive.mutable
+        genesisState.writeStateTo(worldState)
+
+        mutableBlockChain =
             DefaultBlockchain.createMutable(
-                block,
+                genesisState.block,
                 storageProvider.createBlockchainStorage(protocolSchedule),
                 metricsSystem,
                 6L
             )
-        protocolContext = ProtocolContext.init(
-            mutableBlockChain,
-            worldStateArchive,
-            genesisState,
-        ) { _, _ -> }
 
-        blockchainQueries =
-            BlockchainQueries(protocolContext.blockchain, protocolContext.worldStateArchive)
-
+        worldStateUpdater = worldState.updater()
+        worldStateUpdater.commit()
+        blockchainQueries = BlockchainQueries(mutableBlockChain, worldStateArchive)
         miningBeneficiary = Address.ZERO
-
         blockResultFactory = BlockResultFactory()
     }
 
@@ -147,40 +150,39 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
     }
 
     private fun processTransaction(transaction: Transaction): String {
-        val worldState =
-            protocolContext.worldStateArchive.mutable
-        val worldStateUpdater = worldState.updater()
         LOG.info("Starting with root: {}", worldState.rootHash())
+
+        val nextBlockNumber = mutableBlockChain.chainHeadBlockNumber + 1
 
         val blockheaderBuilder = BlockHeaderBuilder.create()
             .coinbase(miningBeneficiary)
-            .difficulty(protocolContext.blockchain.chainHeadHeader.difficulty.plus(100000))
-            .nonce(protocolContext.blockchain.chainHeadHeader.nonce + 1)
-            .gasLimit(protocolContext.blockchain.chainHeadHeader.gasLimit)
+            .difficulty(mutableBlockChain.chainHeadHeader.difficulty.plus(100000))
+            .nonce(mutableBlockChain.chainHeadHeader.nonce + 1)
+            .gasLimit(mutableBlockChain.chainHeadHeader.gasLimit)
             .ommersHash(Hash.EMPTY_LIST_HASH)
             .logsBloom(LogsBloomFilter.empty())
             .extraData(Bytes.EMPTY)
             .mixHash(Hash.EMPTY)
-            .parentHash(protocolContext.blockchain.chainHeadHash)
-            .number(protocolContext.blockchain.chainHeadBlockNumber + 1)
+            .parentHash(mutableBlockChain.chainHeadHash)
+            .number(nextBlockNumber)
             .timestamp(System.currentTimeMillis())
-            .blockHeaderFunctions(protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).blockHeaderFunctions)
+            .blockHeaderFunctions(protocolSchedule.getByBlockNumber(nextBlockNumber).blockHeaderFunctions)
             .transactionsRoot(BodyValidation.transactionsRoot(listOf(transaction)))
 
-        val processableBlockHeader = blockheaderBuilder
-            .buildProcessableBlockHeader()
+        val processableBlockHeader = blockheaderBuilder.buildProcessableBlockHeader()
 
         val result =
-            protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).transactionProcessor.processTransaction(
-                protocolContext.blockchain,
-                worldStateUpdater,
-                processableBlockHeader,
-                transaction,
-                miningBeneficiary,
-                operationTracer,
-                BlockHashLookup(processableBlockHeader, protocolContext.blockchain),
-                true
-            )
+            protocolSchedule.getByBlockNumber(nextBlockNumber)
+                .transactionProcessor.processTransaction(
+                    mutableBlockChain,
+                    worldStateUpdater,
+                    processableBlockHeader,
+                    transaction,
+                    miningBeneficiary,
+                    operationTracer,
+                    BlockHashLookup(processableBlockHeader, mutableBlockChain),
+                    true
+                )
 
         worldStateUpdater.commit()
 
@@ -191,29 +193,25 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val gasUsed = transaction.gasLimit - result.gasRemaining
 
         val transactionReceipt =
-            protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).transactionReceiptFactory.create(
+            protocolSchedule.getByBlockNumber(nextBlockNumber)
+                .transactionReceiptFactory.create(
                 transaction.type,
                 result,
                 worldState,
                 gasUsed
             )
 
+        val receipts = listOf(transactionReceipt)
         val blockHeader = blockheaderBuilder
             .gasUsed(gasUsed)
-            .receiptsRoot(BodyValidation.receiptsRoot(listOf(transactionReceipt)))
-            .logsBloom(BodyValidation.logsBloom(listOf(transactionReceipt)))
+            .receiptsRoot(BodyValidation.receiptsRoot(receipts))
+            .logsBloom(BodyValidation.logsBloom(receipts))
             .stateRoot(worldState.rootHash())
             .buildBlockHeader()
-
         val block = Block(blockHeader, BlockBody(listOf(transaction), emptyList()))
 
         worldState.persist(blockHeader)
-
-        protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber + 1).blockImporter.importBlock(
-            protocolContext,
-            block,
-            HeaderValidationMode.NONE
-        )
+        mutableBlockChain.appendBlock(block, receipts)
 
         return transaction.hash.toHexString()
     }
@@ -223,7 +221,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         coinbaseAddress: Address
     ) {
         val coinbaseReward: Wei =
-            protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).blockReward
+            protocolSchedule.getByBlockNumber(mutableBlockChain.chainHeadBlockNumber).blockReward
         val updater = worldState.updater()
         val coinbase = updater.getOrCreate(coinbaseAddress).mutable
         coinbase.incrementBalance(coinbaseReward)
@@ -234,6 +232,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         w3jAddress: org.web3j.abi.datatypes.Address,
         defaultBlockParameter: String
     ): BigInteger {
+        /* needed?
         val blockParameter = BlockParameter(defaultBlockParameter)
         val blockNumber: Optional<Long> = blockParameter.number
         val worldState = when {
@@ -250,7 +249,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
                 // If block parameter is pending but there is no pending state so take latest
                 blockchainQueries.getWorldState(blockchainQueries.headBlockNumber()).get()
             }
-        }
+        }*/
         val nonce = worldState.get(Address.fromHexString(w3jAddress.value)).nonce
         return BigInteger.valueOf(nonce)
     }
@@ -357,18 +356,14 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
             .signature(FAKE_SIGNATURE)
             .build()
 
-        val worldState =
-            protocolContext.worldStateArchive.mutable
-        val worldStateUpdater = worldState.updater()
-
-        return protocolSchedule.getByBlockNumber(protocolContext.blockchain.chainHeadBlockNumber).transactionProcessor.processTransaction(
-            protocolContext.blockchain,
+        return protocolSchedule.getByBlockNumber(mutableBlockChain.chainHeadBlockNumber).transactionProcessor.processTransaction(
+            mutableBlockChain,
             worldStateUpdater,
             genesisState.block.header,
             transaction,
             miningBeneficiary,
             operationTracer,
-            BlockHashLookup(protocolContext.blockchain.chainHeadHeader, protocolContext.blockchain),
+            BlockHashLookup(mutableBlockChain.chainHeadHeader, mutableBlockChain),
             false
         )
     }
@@ -507,6 +502,7 @@ class EmbeddedEthereum(configuration: Configuration, private val operationTracer
         val blockParameter = BlockParameter(defaultBlockParameter)
         val blockNumber: Optional<Long> = blockParameter.number
         val besuAddress = Address.fromHexString(w3jAddress.toString())
+        println(blockchainQueries.headBlockNumber())
         return when {
             blockNumber.isPresent -> {
                 blockchainQueries.getCode(besuAddress, blockNumber.get())?.get()?.toString() ?: "0x"
