@@ -26,7 +26,6 @@ import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.generated.Fibonacci;
-import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
@@ -36,10 +35,9 @@ public class EmbeddedEthereumTest {
 
     @BeforeEach
     public void setUp() {
-        embeddedEthereum = new EmbeddedEthereum(
-                new Configuration(Address.DEFAULT, 1000000),
-                OperationTracer.NO_TRACING
-        );
+        embeddedEthereum =
+                new EmbeddedEthereum(
+                        new Configuration(Address.DEFAULT, 1000000), OperationTracer.NO_TRACING);
     }
 
     @Test

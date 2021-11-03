@@ -269,7 +269,6 @@ class EmbeddedEthereum @JvmOverloads constructor(
             .buildProcessableBlockHeader()
     }
 
-
     fun rewardMiner(
         worldState: MutableWorldState,
         coinbaseAddress: Address
