@@ -54,6 +54,9 @@ import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStoragePrefixedKeyBlockchainStorage
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStatePreimageKeyValueStorage
+import org.hyperledger.besu.ethereum.transaction.CallParameter
+import org.hyperledger.besu.ethereum.transaction.TransactionSimulator
+import org.hyperledger.besu.ethereum.transaction.TransactionSimulatorResult
 import org.hyperledger.besu.ethereum.vm.BlockHashLookup
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.hyperledger.besu.ethereum.worldstate.DefaultWorldStateArchive
@@ -91,6 +94,8 @@ class EmbeddedEthereum @JvmOverloads constructor(
     private val worldStateUpdater: WorldUpdater
     private val protocolSchedule: ProtocolSchedule
     private val blockChain: MutableBlockchain
+
+    private val simulator: TransactionSimulator
 
     init {
         val genesisConfig = if (configuration.genesisFileUrl === null) {
@@ -151,6 +156,12 @@ class EmbeddedEthereum @JvmOverloads constructor(
         worldStateUpdater.commit()
 
         blockchainQueries = BlockchainQueries(blockChain, worldStateArchive)
+        simulator = TransactionSimulator(
+            blockChain,
+            worldStateArchive,
+            protocolSchedule,
+            PrivacyParameters.DEFAULT
+        )
     }
 
     fun processTransaction(web3jTransaction: wTransaction): String {
@@ -368,40 +379,36 @@ class EmbeddedEthereum @JvmOverloads constructor(
         }
     }
 
-    fun makeEthCall(
-        web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
-        defaultBlockParameter: String
-    ): TransactionProcessingResult? {
-        val transaction = toBesuTx(web3jTransaction)
-
-        return protocolSchedule.getByBlockNumber(blockChain.chainHeadBlockNumber).transactionProcessor.processTransaction(
-            blockChain,
-            worldStateUpdater,
-            genesisState.block.header,
-            transaction,
-            miningBeneficiary,
-            operationTracer,
-            BlockHashLookup(blockChain.chainHeadHeader, blockChain),
-            false
-        )
-    }
-
     fun ethCall(
         web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
         defaultBlockParameter: String
     ): String {
-        // TODO error case..? See EthCall in Besu..
-        return makeEthCall(web3jTransaction, defaultBlockParameter)!!.output.toHexString()
+        val result = processAsCall(web3jTransaction, defaultBlockParameter)
+        // TODO handle errors
+        return result.get().result.output.toHexString()
+    }
+
+    private fun processAsCall(
+        web3jTransaction: wTransaction,
+        defaultBlockParameter: String
+    ): Optional<TransactionSimulatorResult> {
+        return simulator.processAtHead(
+            CallParameter(
+                null,
+                Address.fromHexString(web3jTransaction.to),
+                Long.MAX_VALUE,
+                Wei.ZERO,
+                Wei.ZERO,
+                Bytes.fromHexString(web3jTransaction.data)
+            )
+        )
     }
 
     fun estimateGas(
-        web3jTransaction: org.web3j.protocol.core.methods.request.Transaction
+        web3jTransaction: wTransaction
     ): String {
-        val gasLimit = transactionGasLimitOrDefault(web3jTransaction)
-        val result = makeEthCall(web3jTransaction, "latest")
-        val gasUse = gasLimit - result!!.gasRemaining
-
-        return longToHex(gasUse)
+        val result = processAsCall(web3jTransaction, "latest")
+        return longToHex(result.get().result.estimateGasUsedByTransaction)
     }
 
     fun ethBlockNumber(): String {
