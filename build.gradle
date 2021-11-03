@@ -13,7 +13,7 @@ plugins {
 description 'Web3j-evm extension'
 
 ext {
-    web3jVersion = '4.8.7'
+    web3jVersion = '4.8.8'
     log4jVersion = '2.12.1'
     logbackVersion = '1.2.3'
     guavaVersion = '28.1-jre'
