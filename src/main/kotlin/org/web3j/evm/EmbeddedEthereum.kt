@@ -393,7 +393,7 @@ class EmbeddedEthereum @JvmOverloads constructor(
     ): Optional<TransactionSimulatorResult> {
         return simulator.processAtHead(
             CallParameter(
-                null,
+                Address.fromHexString(web3jTransaction.from),
                 Address.fromHexString(web3jTransaction.to),
                 Long.MAX_VALUE,
                 Wei.ZERO,
