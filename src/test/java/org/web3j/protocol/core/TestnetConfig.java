@@ -22,13 +22,14 @@ import org.web3j.abi.datatypes.Uint;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.request.Transaction;
 
-/** Mordon Testnet Configuration. */
+/** Dev Testnet Configuration. */
 public class TestnetConfig implements IntegrationTestConfig {
 
     @Override
     public String validBlockHash() {
         // genesis block hash
-        return "0xff96cc2ceaddefcfd1933ac5eb652a8c8668708beb3e5c0eff54aea202140012";
+        // return "0xff96cc2ceaddefcfd1933ac5eb652a8c8668708beb3e5c0eff54aea202140012";
+        return "0xa08d1edb37ba1c62db764ef7c2566cbe368b850f5b3762c6c24114a3fd97b87f";
     }
 
     @Override

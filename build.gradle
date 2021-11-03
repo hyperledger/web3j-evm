@@ -47,17 +47,22 @@ apply {
     }
 }
 
+repositories {
+    maven { url "https://hyperledger.jfrog.io/artifactory/besu-maven/" }
+    maven { url "https://artifacts.consensys.net/public/maven/maven/" }
+    maven { url "https://splunk.jfrog.io/splunk/ext-releases-local" }
+    maven { url "https://dl.cloudsmith.io/public/consensys/quorum-mainnet-launcher/maven/" }
+}
+
 dependencies {
     implementation "org.web3j:core:$web3jVersion"
-    implementation "org.apache.logging.log4j:log4j-to-slf4j:$log4jVersion"
-    implementation "ch.qos.logback:logback-classic:$logbackVersion"
     implementation "com.google.guava:guava:$guavaVersion"
-    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
     implementation "com.beust:klaxon:$klaxonVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
     implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion"
+    implementation "org.hyperledger.besu.internal:besu:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:api:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:config:$besuInternalVersion"
     implementation "org.hyperledger.besu.internal:core:$besuInternalVersion"

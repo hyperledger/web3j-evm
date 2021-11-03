@@ -12,7 +12,30 @@
  */
 package org.web3j.evm
 
+import org.apache.tuweni.bytes.Bytes32
+import org.hyperledger.besu.crypto.KeyPair
+import org.hyperledger.besu.crypto.SignatureAlgorithm
+import org.hyperledger.besu.crypto.SignatureAlgorithmFactory
 import org.web3j.abi.datatypes.Address
 import java.net.URL
 
-class Configuration @JvmOverloads constructor(val selfAddress: Address, val ethFund: Long, val genesisFileUrl: URL? = null)
+/**
+ *
+ */
+class Configuration @JvmOverloads constructor(
+    val selfAddress: Address,
+    val ethFund: Long,
+    val genesisFileUrl: URL? = null
+) {
+    private val signatureAlgorithm: SignatureAlgorithm = SignatureAlgorithmFactory.getInstance()
+
+    // TODO configurable
+    // Test Account 1 (address 0xfe3b557e8fb62b89f4916b721be55ceb828dbd73)
+    val keyPair: KeyPair =
+        signatureAlgorithm.createKeyPair(
+            // Default test account?
+            signatureAlgorithm.createPrivateKey(
+                Bytes32.fromHexString("0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63")
+            )
+        )
+}
