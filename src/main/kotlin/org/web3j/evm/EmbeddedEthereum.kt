@@ -49,7 +49,6 @@ import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ScheduleBasedBlockHeaderFunctions
 import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
-import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStoragePrefixedKeyBlockchainStorage
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage
