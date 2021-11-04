@@ -41,6 +41,7 @@ import org.hyperledger.besu.ethereum.core.MutableWorldState
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader
 import org.hyperledger.besu.ethereum.core.Transaction
+import org.hyperledger.besu.ethereum.core.TransactionReceipt
 import org.hyperledger.besu.ethereum.core.Wei
 import org.hyperledger.besu.ethereum.core.WorldUpdater
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation
@@ -66,13 +67,13 @@ import org.slf4j.LoggerFactory
 import org.web3j.evm.Configuration.Companion.TEST_ACCOUNTS
 import org.web3j.protocol.core.methods.response.AccessListObject
 import org.web3j.protocol.core.methods.response.EthBlock
-import org.web3j.protocol.core.methods.response.TransactionReceipt
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Optional
 import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
+import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
 
 /**
  *
@@ -146,6 +147,7 @@ class EmbeddedEthereum @JvmOverloads constructor(
         // Create accounts from Web3j configuration
         LOG.debug("Allocating Web3j account ${configuration.selfAddress}")
 
+        // Note that this resets the account if already exists
         worldStateUpdater.createAccount(
             configuration.selfAddress.asBesu(),
             0,
@@ -163,18 +165,50 @@ class EmbeddedEthereum @JvmOverloads constructor(
         )
     }
 
+    /**
+     * Process an unsigned Web3j transaction object.
+     *
+     * The transaction will be signed by the matching key pair
+     * for the provided "from" address in the transaction if it is
+     * defined in the test accounts, otherwise will be signed with
+     * the first test account key pair.
+     *
+     * @param web3jTransaction The web3j transaction
+     * @return the transaction hash
+     * @see TEST_ACCOUNTS
+     */
     fun processTransaction(web3jTransaction: wTransaction): String {
         val transaction = toBesuTx(web3jTransaction)
-        return processTransaction(transaction)
+        processTransaction(transaction)
+        return transaction.hash.toHexString()
     }
 
+    /**
+     * Process a signed RLP encoded transaction.
+     *
+     * @param signedTransactionData The singed RLP encoded transaction data
+     * @return the transaction hash
+     */
     fun processTransaction(signedTransactionData: String): String {
         val transaction = Transaction.readFrom(RLP.input(Bytes.fromHexString(signedTransactionData)))
-        return processTransaction(transaction)
+        processTransaction(transaction)
+        return transaction.hash.toHexString()
     }
 
-    // TODO check if it is desirable to create a new block per transaction
-    private fun processTransaction(transaction: Transaction): String {
+    /**
+     * Process a Besu transaction object.
+     *
+     * The logic is as follows:
+     * 1) A new block header is created following the current chain head.
+     * 2) The transaction is processed using this new block header.
+     * 3) If the processing result is valid the world state is updated.
+     * 4) Transaction receipts are created for the processed transaction.
+     * 5) A new block is created and append to the blockchain with the transaction and receipt.
+     *
+     * @param transaction The Besu transaction
+     * @return the transaction receipt
+     */
+    private fun processTransaction(transaction: Transaction): TransactionReceipt {
         LOG.debug("Starting with root: {}", worldState.rootHash())
 
         val nextBlockNumber = blockChain.chainHeadBlockNumber + 1
@@ -239,18 +273,14 @@ class EmbeddedEthereum @JvmOverloads constructor(
         worldState.persist(blockHeader)
         blockChain.appendBlock(block, receipts)
 
-        // TODO better to return new created Block?
-        return transaction.hash.toHexString()
+        return transactionReceipt
     }
 
     private fun toBesuTx(web3jTransaction: wTransaction): Transaction {
         val chainId = web3jTransaction.chainId?.toBigInteger()
             ?: protocolSchedule.chainId.orElse(BigInteger.ONE)
         val nonce = if (web3jTransaction.nonce == null) {
-            getTransactionCount(
-                wAddress(web3jTransaction.from),
-                "latest"
-            ).toLong()
+            getTransactionCount(wAddress(web3jTransaction.from)).toLong()
         } else {
             hexToULong(web3jTransaction.nonce)
         }
@@ -300,15 +330,12 @@ class EmbeddedEthereum @JvmOverloads constructor(
         updater.commit()
     }
 
-    fun getTransactionCount(
-        w3jAddress: wAddress,
-        defaultBlockParameter: String
-    ): BigInteger {
+    fun getTransactionCount(w3jAddress: wAddress): BigInteger {
         val count = blockchainQueries.getTransactionCount(w3jAddress.asBesu())
         return BigInteger.valueOf(count)
     }
 
-    fun getTransactionReceipt(transactionHashParam: String): TransactionReceipt? {
+    fun getTransactionReceipt(transactionHashParam: String): wTransactionReceipt? {
         val hash = Hash.fromHexStringLenient(transactionHashParam)
 
         val result = blockchainQueries
@@ -332,7 +359,7 @@ class EmbeddedEthereum @JvmOverloads constructor(
         val root = if (result is TransactionReceiptRootResult) result.root else null
         val status = if (result is TransactionReceiptStatusResult) result.status else null
 
-        return TransactionReceipt(
+        return wTransactionReceipt(
             transactionHash,
             transactionIndex,
             blockHash,
