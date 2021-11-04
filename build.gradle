@@ -88,3 +88,6 @@ compileTestKotlin {
         jvmTarget = "1.8"
     }
 }
+
+// To publish in mavenLocal()
+// tasks.withType(Sign)*.enabled = false
