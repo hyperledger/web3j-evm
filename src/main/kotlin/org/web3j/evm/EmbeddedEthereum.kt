@@ -108,8 +108,7 @@ class EmbeddedEthereum(
                 .chainId(chainId)
                 .guessType()
                 .signAndBuild(
-                    TEST_ACCOUNTS[from]
-                        ?: TEST_ACCOUNTS.values.first()
+                    TEST_ACCOUNTS[from] ?: TEST_ACCOUNTS.values.first()
                 )
         }
     }
@@ -378,7 +377,6 @@ private fun wTransaction.asCallParameter(): CallParameter {
     }
 }
 
-// TODO extract
 private fun wAddress.asBesu(): Address {
     return Address.fromHexString(this.value)
 }

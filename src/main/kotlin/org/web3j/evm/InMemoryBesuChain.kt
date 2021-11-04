@@ -125,7 +125,7 @@ class InMemoryBesuChain(
             genesisState.block,
             blockchainStorage,
             NoOpMetricsSystem(),
-            6L
+            0
         )
 
         // Create accounts from configuration
@@ -165,8 +165,6 @@ class InMemoryBesuChain(
      * @return the transaction receipt
      */
     fun processTransaction(transaction: Transaction): TransactionReceipt {
-        LOG.debug("Starting with root: {}", worldState.rootHash())
-
         val nextBlockNumber = blockChain.chainHeadBlockNumber + 1
         val spec = protocolSchedule.getByBlockNumber(nextBlockNumber)
         val transactionProcessor = spec.transactionProcessor
@@ -194,8 +192,6 @@ class InMemoryBesuChain(
 
         // TODO review this
         rewardMiner(worldState, miningBeneficiary)
-
-        LOG.debug("Ending with root: {}", worldState.rootHash())
 
         val gasUsed = result.estimateGasUsedByTransaction
         val transactionReceipt = transactionReceiptFactory.create(
