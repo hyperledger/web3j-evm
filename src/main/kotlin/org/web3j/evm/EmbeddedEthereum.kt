@@ -63,6 +63,7 @@ import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
 import org.slf4j.LoggerFactory
+import org.web3j.evm.Configuration.Companion.TEST_ACCOUNTS
 import org.web3j.protocol.core.methods.response.AccessListObject
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.protocol.core.methods.response.TransactionReceipt
@@ -85,7 +86,6 @@ class EmbeddedEthereum @JvmOverloads constructor(
     private val genesisState: GenesisState
     private val blockchainQueries: BlockchainQueries
     private val miningBeneficiary = Address.ZERO
-    private val keyPair = configuration.keyPair
     private val blockResultFactory = BlockResultFactory()
 
     private val worldState: MutableWorldState
@@ -168,31 +168,6 @@ class EmbeddedEthereum @JvmOverloads constructor(
         return processTransaction(transaction)
     }
 
-    private fun toBesuTx(web3jTransaction: wTransaction): Transaction {
-        val chainId = web3jTransaction.chainId?.toBigInteger()
-            ?: protocolSchedule.chainId.orElse(BigInteger.ONE)
-        val nonce = if (web3jTransaction.nonce == null) {
-            getTransactionCount(
-                wAddress(web3jTransaction.from),
-                "latest"
-            ).toLong()
-        } else {
-            hexToULong(web3jTransaction.nonce)
-        }
-
-        return Transaction.builder()
-            .gasLimit(transactionGasLimitOrDefault(web3jTransaction))
-            .gasPrice(Wei.of(hexToULong(web3jTransaction.gasPrice)))
-            .nonce(nonce)
-            .sender(Address.fromHexString(web3jTransaction.from))
-            .to(Address.fromHexString(web3jTransaction.to))
-            .payload(Bytes.fromHexString(web3jTransaction.data))
-            .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
-            .chainId(chainId)
-            .guessType()
-            .signAndBuild(keyPair)
-    }
-
     fun processTransaction(signedTransactionData: String): String {
         val transaction = Transaction.readFrom(RLP.input(Bytes.fromHexString(signedTransactionData)))
         return processTransaction(transaction)
@@ -266,6 +241,36 @@ class EmbeddedEthereum @JvmOverloads constructor(
 
         // TODO better to return new created Block?
         return transaction.hash.toHexString()
+    }
+
+    private fun toBesuTx(web3jTransaction: wTransaction): Transaction {
+        val chainId = web3jTransaction.chainId?.toBigInteger()
+            ?: protocolSchedule.chainId.orElse(BigInteger.ONE)
+        val nonce = if (web3jTransaction.nonce == null) {
+            getTransactionCount(
+                wAddress(web3jTransaction.from),
+                "latest"
+            ).toLong()
+        } else {
+            hexToULong(web3jTransaction.nonce)
+        }
+        val from = (web3jTransaction.from ?: "0x0").toLowerCase()
+
+        // TODO should we add support for account 0x0 fake signature?
+        return Transaction.builder()
+            .gasLimit(transactionGasLimitOrDefault(web3jTransaction))
+            .gasPrice(Wei.of(hexToULong(web3jTransaction.gasPrice)))
+            .nonce(nonce)
+            .sender(Address.fromHexString(from))
+            .to(Address.fromHexString(web3jTransaction.to))
+            .payload(Bytes.fromHexString(web3jTransaction.data))
+            .value(Wei.of(UInt256.fromHexString(web3jTransaction.value ?: "0x0")))
+            .chainId(chainId)
+            .guessType()
+            .signAndBuild(
+                TEST_ACCOUNTS[from]
+                    ?: TEST_ACCOUNTS.values.first()
+            )
     }
 
     private fun createPendingBlockHeader(): ProcessableBlockHeader? {
