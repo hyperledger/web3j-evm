@@ -22,10 +22,11 @@ import java.net.URL
  *
  */
 class Configuration @JvmOverloads constructor(
-    val selfAddress: Address,
+    selfAddress: Address,
     val ethFund: Long,
     val genesisFileUrl: URL? = null
 ) {
+    val testAddress: String = selfAddress.value
 
     companion object {
         private val signatureAlgorithm: SignatureAlgorithm = SignatureAlgorithmFactory.getInstance()
