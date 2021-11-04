@@ -200,7 +200,7 @@ class EmbeddedEthereum @JvmOverloads constructor(
 
     // TODO check if it is desirable to create a new block per transaction
     private fun processTransaction(transaction: Transaction): String {
-        LOG.info("Starting with root: {}", worldState.rootHash())
+        LOG.debug("Starting with root: {}", worldState.rootHash())
 
         val nextBlockNumber = blockChain.chainHeadBlockNumber + 1
         val spec = protocolSchedule.getByBlockNumber(nextBlockNumber)
@@ -221,12 +221,16 @@ class EmbeddedEthereum @JvmOverloads constructor(
             true
         )
 
+        if (result.isInvalid) {
+            throw Exception(result.validationResult.errorMessage)
+        }
+
         worldStateUpdater.commit()
 
         // TODO review this
         rewardMiner(worldState, miningBeneficiary)
 
-        LOG.info("Ending with root: {}", worldState.rootHash())
+        LOG.debug("Ending with root: {}", worldState.rootHash())
 
         val gasUsed = result.estimateGasUsedByTransaction
         val transactionReceipt = transactionReceiptFactory.create(
@@ -292,11 +296,11 @@ class EmbeddedEthereum @JvmOverloads constructor(
     }
 
     fun getTransactionCount(
-        w3jAddress: org.web3j.abi.datatypes.Address,
+        w3jAddress: wAddress,
         defaultBlockParameter: String
     ): BigInteger {
-        val nonce = worldState.get(Address.fromHexString(w3jAddress.value)).nonce
-        return BigInteger.valueOf(nonce)
+        val count = blockchainQueries.getTransactionCount(w3jAddress.asBesu())
+        return BigInteger.valueOf(count)
     }
 
     fun getTransactionReceipt(transactionHashParam: String): TransactionReceipt? {
