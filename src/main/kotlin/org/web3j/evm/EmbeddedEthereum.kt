@@ -288,12 +288,12 @@ class EmbeddedEthereum @JvmOverloads constructor(
             .buildProcessableBlockHeader()
     }
 
-    fun rewardMiner(
+    private fun rewardMiner(
         worldState: MutableWorldState,
         coinbaseAddress: Address
     ) {
-        val coinbaseReward: Wei =
-            protocolSchedule.getByBlockNumber(blockChain.chainHeadBlockNumber).blockReward
+        val spec = protocolSchedule.getByBlockNumber(blockChain.chainHeadBlockNumber)
+        val coinbaseReward: Wei = spec.blockReward
         val updater = worldState.updater()
         val coinbase = updater.getOrCreate(coinbaseAddress).mutable
         coinbase.incrementBalance(coinbaseReward)
@@ -388,15 +388,15 @@ class EmbeddedEthereum @JvmOverloads constructor(
     }
 
     fun ethCall(
-        web3jTransaction: org.web3j.protocol.core.methods.request.Transaction,
+        web3jTransaction: wTransaction,
         defaultBlockParameter: String
     ): String {
-        val result = processAsCall(web3jTransaction, defaultBlockParameter)
+        val result = processCall(web3jTransaction, defaultBlockParameter)
         // TODO handle errors
         return result.get().result.output.toHexString()
     }
 
-    private fun processAsCall(
+    private fun processCall(
         web3jTransaction: wTransaction,
         defaultBlockParameter: String
     ): Optional<TransactionSimulatorResult> {
@@ -415,7 +415,7 @@ class EmbeddedEthereum @JvmOverloads constructor(
     fun estimateGas(
         web3jTransaction: wTransaction
     ): String {
-        val result = processAsCall(web3jTransaction, "latest")
+        val result = processCall(web3jTransaction, "latest")
         return longToHex(result.get().result.estimateGasUsedByTransaction)
     }
 
@@ -531,24 +531,24 @@ class EmbeddedEthereum @JvmOverloads constructor(
         )
     }
 
-    fun ethGetCode(w3jAddress: org.web3j.abi.datatypes.Address, defaultBlockParameter: String): String {
+    fun ethGetCode(w3jAddress: wAddress, defaultBlockParameter: String): String {
         val blockParameter = BlockParameter(defaultBlockParameter)
         val blockNumber: Optional<Long> = blockParameter.number
-        val besuAddress = Address.fromHexString(w3jAddress.toString())
+        val address = w3jAddress.asBesu()
 
         return when {
             blockNumber.isPresent -> {
-                blockchainQueries.getCode(besuAddress, blockNumber.get())?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(address, blockNumber.get())?.get()?.toString() ?: "0x"
             }
             blockParameter.isLatest -> {
-                blockchainQueries.getCode(besuAddress, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(address, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
             blockParameter.isEarliest -> {
-                blockchainQueries.getCode(besuAddress, 0)?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(address, 0)?.get()?.toString() ?: "0x"
             }
             else -> {
                 // If block parameter is pending but there is no pending state so take latest
-                blockchainQueries.getCode(besuAddress, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
+                blockchainQueries.getCode(address, blockchainQueries.headBlockNumber())?.get()?.toString() ?: "0x"
             }
         }
     }
