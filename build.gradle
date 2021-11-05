@@ -92,8 +92,8 @@ compileTestKotlin {
 configurations.all {
     resolutionStrategy {
         // WARN web3j:core:4.8.8
-        // imports web3j:abi:5.0.0 in default configuration
-        force 'org.web3j:abi:4.8.8'
+        // imports web3j:abi:5.0.0 in some configurations
+        // force 'org.web3j:abi:4.8.8'
 
         //failOnVersionConflict()
     }
