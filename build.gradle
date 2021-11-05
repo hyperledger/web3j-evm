@@ -61,19 +61,21 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
-    implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion"
-    implementation "org.hyperledger.besu.internal:besu:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:api:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:config:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:core:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:crypto:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:rlp:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:kvstore:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:metrics-core:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:trie:$besuInternalVersion"
-    implementation "org.hyperledger.besu.internal:util:$besuInternalVersion"
-    implementation "org.hyperledger.besu:bls12-381:$besuCryptoDepVersion"
-    implementation "org.hyperledger.besu:secp256k1:$besuCryptoDepVersion"
+    def withoutAbi = { exclude group: 'org.web3j', module: 'abi' }
+
+    implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:besu:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:api:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:config:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:core:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:crypto:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:rlp:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:kvstore:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:metrics-core:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:trie:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:util:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu:bls12-381:$besuCryptoDepVersion", withoutAbi
+    implementation "org.hyperledger.besu:secp256k1:$besuCryptoDepVersion", withoutAbi
 }
 
 
@@ -91,10 +93,6 @@ compileTestKotlin {
 
 configurations.all {
     resolutionStrategy {
-        // WARN web3j:core:4.8.8
-        // imports web3j:abi:5.0.0 in some configurations
-        // force 'org.web3j:abi:4.8.8'
-
         //failOnVersionConflict()
     }
 }
