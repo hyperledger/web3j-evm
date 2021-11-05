@@ -260,7 +260,7 @@ class EmbeddedEthereum(
                 tcr.type,
                 tcr.maxFeePerGas,
                 tcr.maxPriorityFeePerGas,
-                tcr.accessList.map {
+                tcr.accessList?.map {
                     AccessListObject(
                         it.address.toHexString(),
                         mutableListOf(it.storageKeys.toString())

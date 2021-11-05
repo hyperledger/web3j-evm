@@ -250,25 +250,25 @@ class InMemoryBesuChain(
 
     fun ethBlockByHash(hash: Hash, completeTransaction: Boolean): Optional<BlockResult> {
         if (completeTransaction) {
-            return blockchainQueries.blockByHashWithTxHashes(hash).map { tx ->
-                blockResultFactory.transactionHash(tx)
+            return blockchainQueries.blockByHash(hash).map { tx ->
+                blockResultFactory.transactionComplete(tx)
             }
         }
 
-        return blockchainQueries.blockByHash(hash).map { tx ->
-            blockResultFactory.transactionComplete(tx)
+        return blockchainQueries.blockByHashWithTxHashes(hash).map { tx ->
+            blockResultFactory.transactionHash(tx)
         }
     }
 
     fun ethBlockByNumber(number: Long, completeTransaction: Boolean): Optional<BlockResult> {
         if (completeTransaction) {
-            blockchainQueries.blockByNumberWithTxHashes(number).map { tx ->
-                blockResultFactory.transactionHash(tx)
+            return blockchainQueries.blockByNumber(number).map { tx ->
+                blockResultFactory.transactionComplete(tx)
             }
         }
 
-        return blockchainQueries.blockByNumber(number).map { tx ->
-            blockResultFactory.transactionComplete(tx)
+        return blockchainQueries.blockByNumberWithTxHashes(number).map { tx ->
+            blockResultFactory.transactionHash(tx)
         }
     }
 
