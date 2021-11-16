@@ -41,8 +41,10 @@ public class CoreIT {
 
     private Web3j web3j;
 
-    private IntegrationTestConfig config = new TestnetConfig();
+    private final IntegrationTestConfig config = new TestnetConfig();
     private Credentials credentials;
+
+    private TransactionReceipt transactionReceipt;
 
     public CoreIT() {}
 
@@ -54,9 +56,9 @@ public class CoreIT {
         final Configuration configuration =
                 new Configuration(new Address(credentials.getAddress()), 10);
 
-        this.web3j = Web3j.build(new EmbeddedWeb3jService(configuration, operationTracer));
+        web3j = Web3j.build(new EmbeddedWeb3jService(configuration, operationTracer));
 
-        TransactionReceipt transactionReceipt =
+        transactionReceipt =
                 Transfer.sendFunds(
                                 web3j,
                                 credentials,
@@ -280,56 +282,53 @@ public class CoreIT {
         assertEquals(1, ethEstimateGas.getAmountUsed().signum());
     }
 
-    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByHashReturnHashObjects() throws Exception {
-        EthBlock ethBlock = web3j.ethGetBlockByHash(config.validBlockHash(), false).send();
+        EthBlock ethBlock =
+                web3j.ethGetBlockByHash(transactionReceipt.getBlockHash(), false).send();
 
         EthBlock.Block block = ethBlock.getBlock();
         assertNotNull(ethBlock.getBlock());
-        assertEquals(block.getNumber(), (config.validBlock()));
-        assertEquals(
-                block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
+        assertEquals(block.getNumber(), transactionReceipt.getBlockNumber());
+        assertEquals(block.getTransactions().size(), 1);
     }
 
-    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByHashReturnFullTransactionObjects() throws Exception {
-        EthBlock ethBlock = web3j.ethGetBlockByHash(config.validBlockHash(), true).send();
+        EthBlock ethBlock = web3j.ethGetBlockByHash(transactionReceipt.getBlockHash(), true).send();
 
         EthBlock.Block block = ethBlock.getBlock();
         assertNotNull(ethBlock.getBlock());
-        assertEquals(block.getNumber(), (config.validBlock()));
-        assertEquals(
-                block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
+        assertEquals(block.getNumber(), transactionReceipt.getBlockNumber());
+        assertEquals(block.getTransactions().size(), 1);
     }
 
-    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByNumberReturnHashObjects() throws Exception {
         EthBlock ethBlock =
-                web3j.ethGetBlockByNumber(DefaultBlockParameter.valueOf(config.validBlock()), false)
+                web3j.ethGetBlockByNumber(
+                                DefaultBlockParameter.valueOf(transactionReceipt.getBlockNumber()),
+                                false)
                         .send();
 
         EthBlock.Block block = ethBlock.getBlock();
         assertNotNull(ethBlock.getBlock());
-        assertEquals(block.getNumber(), (config.validBlock()));
-        assertEquals(
-                block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
+        assertEquals(block.getNumber(), transactionReceipt.getBlockNumber());
+        assertEquals(block.getTransactions().size(), 1);
     }
 
-    @Disabled("Missing test setup")
     @Test
     public void testEthGetBlockByNumberReturnTransactionObjects() throws Exception {
         EthBlock ethBlock =
-                web3j.ethGetBlockByNumber(DefaultBlockParameter.valueOf(config.validBlock()), true)
+                web3j.ethGetBlockByNumber(
+                                DefaultBlockParameter.valueOf(transactionReceipt.getBlockNumber()),
+                                true)
                         .send();
 
         EthBlock.Block block = ethBlock.getBlock();
         assertNotNull(ethBlock.getBlock());
-        assertEquals(block.getNumber(), (config.validBlock()));
-        assertEquals(
-                block.getTransactions().size(), (config.validBlockTransactionCount().intValue()));
+        assertEquals(block.getNumber(), transactionReceipt.getBlockNumber());
+        assertEquals(block.getTransactions().size(), 1);
     }
 
     @Disabled("Missing RPC")
