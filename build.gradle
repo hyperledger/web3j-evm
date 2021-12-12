@@ -14,14 +14,13 @@ description 'Web3j-evm extension'
 
 ext {
     web3jVersion = version
-    log4jVersion = '2.12.1'
-    logbackVersion = '1.2.3'
+    log4jVersion = '2.15.0'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
     kotlinVersion = '1.4.10'
-    besuPluginVersion = '21.7.2'
-    besuInternalVersion = '21.7.2'
+    besuPluginVersion = '21.10.3'
+    besuInternalVersion = '21.10.3'
     besuCryptoDepVersion = '0.3.0'
 }
 
