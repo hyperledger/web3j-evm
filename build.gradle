@@ -19,8 +19,8 @@ ext {
     jacksonVersion = '2.10.0'
     klaxonVersion = '5.0.1'
     kotlinVersion = '1.4.10'
-    besuPluginVersion = '21.10.3'
-    besuInternalVersion = '21.10.3'
+    besuPluginVersion = '21.7.2'
+    besuInternalVersion = '21.7.2'
     besuCryptoDepVersion = '0.3.0'
 }
 
@@ -59,15 +59,21 @@ dependencies {
     implementation "com.beust:klaxon:$klaxonVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
 
     def withoutAbi = { exclude group: 'org.web3j', module: 'abi' }
+    def withoutAbiAndLog4j = {
+        exclude group: 'org.web3j', module: 'abi'
+        exclude group: 'org.apache.logging.log4j'
+    }
 
     implementation "org.hyperledger.besu:plugin-api:$besuPluginVersion", withoutAbi
-    implementation "org.hyperledger.besu.internal:besu:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:besu:$besuInternalVersion", withoutAbiAndLog4j
     implementation "org.hyperledger.besu.internal:api:$besuInternalVersion", withoutAbi
     implementation "org.hyperledger.besu.internal:config:$besuInternalVersion", withoutAbi
     implementation "org.hyperledger.besu.internal:core:$besuInternalVersion", withoutAbi
-    implementation "org.hyperledger.besu.internal:crypto:$besuInternalVersion", withoutAbi
+    implementation "org.hyperledger.besu.internal:crypto:$besuInternalVersion", withoutAbiAndLog4j
     implementation "org.hyperledger.besu.internal:rlp:$besuInternalVersion", withoutAbi
     implementation "org.hyperledger.besu.internal:kvstore:$besuInternalVersion", withoutAbi
     implementation "org.hyperledger.besu.internal:metrics-core:$besuInternalVersion", withoutAbi
