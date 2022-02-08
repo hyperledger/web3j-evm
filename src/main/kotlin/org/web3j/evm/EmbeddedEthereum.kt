@@ -256,7 +256,7 @@ class EmbeddedEthereum(
                 null, // TODO?
                 tcr.r,
                 tcr.s,
-                hexToULong(tcr.v).toInt(),
+                hexToULong(tcr.v),
                 tcr.type,
                 tcr.maxFeePerGas,
                 tcr.maxPriorityFeePerGas,
