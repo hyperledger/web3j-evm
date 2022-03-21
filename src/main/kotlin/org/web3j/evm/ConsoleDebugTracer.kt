@@ -17,29 +17,17 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.io.FileReader
 import java.util.SortedMap
-import java.util.TreeMap
-import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.min
 import kotlin.math.max
-import kotlin.collections.HashMap
-import kotlin.collections.ArrayList
 import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
 import org.hyperledger.besu.ethereum.vm.MessageFrame
 import org.hyperledger.besu.ethereum.vm.OperationTracer
-import com.beust.klaxon.Klaxon
-
-private data class ContractMeta(val contracts: Map<String, Map<String, String>>, val sourceList: List<String>)
-
-private data class ContractMapping(val idxSource: Map<Int, SourceFile>, val pcSourceMappings: Map<Int, SourceMapElement>)
-
-data class SourceMapElement(val sourceFileByteOffset: Int = 0, val lengthOfSourceRange: Int = 0, val sourceIndex: Int = 0, val jumpType: String = "")
-
-data class SourceLine(val line: String, val selected: Boolean = false, val offset: Int = 0)
-
-data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, SourceLine> = Collections.emptySortedMap())
+import org.web3j.evm.entity.ContractMapping
+import org.web3j.evm.entity.source.SourceFile
+import org.web3j.evm.entity.source.SourceLine
+import org.web3j.evm.entity.source.SourceMapElement
+import org.web3j.evm.utils.SourceMappingUtils
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
@@ -76,250 +64,16 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         InputStreamReader(stdin)
     ))
 
-    private fun maybeContractMap(bytecode: String, contractMeta: ContractMeta): Map<String, String> {
-        return contractMeta
-            .contracts
-            .values
-            .firstOrNull { contractProps ->
-                contractProps.filter { propEntry ->
-                    propEntry.key.startsWith("bin")
-                }.values.any { v ->
-                    bytecode.startsWith(v)
-                }
-            } ?: emptyMap()
-    }
-
-    private fun loadContractMeta(file: File): List<ContractMeta> {
-        return when {
-            file.isFile && file.name.endsWith(".json") && !file.name.endsWith("meta.json") -> {
-                listOf(Klaxon().parse<ContractMeta>(file) ?: ContractMeta(emptyMap(), emptyList()))
-            }
-            file.isDirectory -> {
-                file.listFiles()
-                    ?.map { loadContractMeta(it) }
-                    ?.flatten() ?: emptyList()
-            }
-            else -> emptyList()
-        }
-    }
-
-    private fun decompressSourceMap(sourceMap: String): List<SourceMapElement> {
-        fun foldOp(elements: MutableList<SourceMapElement>, sourceMapPart: String): MutableList<SourceMapElement> {
-            val prevSourceMapElement = if (elements.isNotEmpty()) elements.last() else SourceMapElement()
-            val parts = sourceMapPart.split(":")
-            val s = if (parts.size > 0 && parts[0].isNotBlank()) parts[0].toInt() else prevSourceMapElement.sourceFileByteOffset
-            val l = if (parts.size > 1 && parts[1].isNotBlank()) parts[1].toInt() else prevSourceMapElement.lengthOfSourceRange
-            val f = if (parts.size > 2 && parts[2].isNotBlank()) parts[2].toInt() else prevSourceMapElement.sourceIndex
-            val j = if (parts.size > 3 && parts[3].isNotBlank()) parts[3] else prevSourceMapElement.jumpType
-            return elements.apply { add(SourceMapElement(s, l, f, j)) }
-        }
-
-        return sourceMap.split(";").fold(ArrayList<SourceMapElement>(), ::foldOp)
-    }
-
-    private fun opCodeGroups(bytecode: String): List<String> {
-        return bytecode
-            .split("(?<=\\G.{2})".toRegex())
-            .foldIndexed(Pair(0, ArrayList<String>()), { index, state, opCode ->
-                if (opCode.isBlank()) return@foldIndexed state
-
-                val acc = state.first
-                val groups = state.second
-
-                if (index >= acc) {
-                    Pair(acc + opCodeToOpSize(opCode), groups.apply { add(opCode) })
-                } else {
-                    Pair(acc, groups.apply { set(size - 1, last() + opCode) })
-                }
-            }).second
-    }
-
-    private fun opCodeToOpSize(opCode: String): Int {
-        return when (opCode.toUpperCase()) {
-            "60" -> 2
-            "61" -> 3
-            "62" -> 4
-            "63" -> 5
-            "64" -> 6
-            "65" -> 7
-            "66" -> 8
-            "67" -> 9
-            "68" -> 10
-            "69" -> 11
-            "6A" -> 12
-            "6B" -> 13
-            "6C" -> 14
-            "6D" -> 15
-            "6E" -> 16
-            "6F" -> 17
-            "70" -> 18
-            "71" -> 19
-            "72" -> 20
-            "73" -> 21
-            "74" -> 22
-            "75" -> 23
-            "76" -> 24
-            "77" -> 25
-            "78" -> 26
-            "79" -> 27
-            "7A" -> 28
-            "7B" -> 29
-            "7C" -> 30
-            "7D" -> 31
-            "7E" -> 32
-            "7F" -> 33
-            else -> 1
-        }
-    }
-
-    private fun loadFile(path: String): SortedMap<Int, SourceLine> {
-        return BufferedReader(FileReader(path)).use { reader ->
-            reader.lineSequence()
-                .withIndex()
-                .map { indexedLine -> Pair(indexedLine.index + 1, SourceLine(indexedLine.value)) }
-                .toMap(TreeMap())
-        }
-    }
-
-    private fun pcSourceMap(sourceMapElements: List<SourceMapElement>, opCodeGroups: List<String>): Map<Int, SourceMapElement> {
-        val mappings = HashMap<Int, SourceMapElement>()
-
-        var location = 0
-
-        for (i in 0 until min(opCodeGroups.size, sourceMapElements.size)) {
-            mappings[location] = sourceMapElements[i]
-            location += (opCodeGroups[i].length / 2)
-        }
-
-        return mappings
-    }
-
-    private fun loadContractMapping(contractCreation: Boolean, bytecode: String): ContractMapping {
-        if (metaFile == null || !metaFile.exists())
-            return ContractMapping(emptyMap(), emptyMap())
-
-        val contractMetas = loadContractMeta(metaFile)
-
-        val (contract, sourceList) = contractMetas
-            .map { Pair(maybeContractMap(bytecode, it), it.sourceList) }
-            .firstOrNull { it.first.isNotEmpty() } ?: return ContractMapping(emptyMap(), emptyMap())
-
-        val srcmap = if (contractCreation) {
-            contract["srcmap"]
-        } else {
-            contract["srcmap-runtime"]
-        } ?: return ContractMapping(emptyMap(), emptyMap())
-
-        val idxSource = sourceList
-            .withIndex()
-            .map { Pair(it.index, SourceFile(it.value, loadFile(it.value))) }
-            .toMap()
-
-        val sourceMapElements = decompressSourceMap(srcmap)
-        val opCodeGroups = opCodeGroups(bytecode)
-        val pcSourceMappings = pcSourceMap(sourceMapElements, opCodeGroups)
-
-        return ContractMapping(idxSource, pcSourceMappings)
-    }
-
-    private fun sourceSize(sourceContent: SortedMap<Int, SourceLine>) = sourceContent.values
-        // Doing +1 to include newline
-        .map { it.line.length + 1 }
-        .sum()
-
-    private fun sourceRange(sourceContent: SortedMap<Int, SourceLine>, from: Int, to: Int): SortedMap<Int, String> {
-        return sourceContent.entries.fold(Pair(0, TreeMap<Int, String>())) { acc, entry ->
-            val subsection = entry
-                .value
-                .line
-                .withIndex()
-                .filter { acc.first + it.index in from..to }
-                .map { it.value }
-                .joinToString(separator = "")
-
-            val accMin = acc.first
-            val accMax = acc.first + entry.value.line.length
-            val overlap = accMin in from..to || accMax in from..to || from in accMin..accMax || to in accMin..accMax
-
-            if (overlap) acc.second[entry.key] = subsection
-
-            return@fold Pair(acc.first + entry.value.line.length + 1, acc.second)
-        }.second
-    }
-
-    private fun findSourceNear(idxSource: Map<Int, SourceFile>, sourceMapElement: SourceMapElement): SourceFile {
-        val sourceFile = idxSource[sourceMapElement.sourceIndex] ?: return SourceFile()
-        val sourceContent = sourceFile.sourceContent
-        val sourceLength = sourceSize(sourceContent)
-
-        val from = sourceMapElement.sourceFileByteOffset
-        val to = from + sourceMapElement.lengthOfSourceRange
-
-        val head = sourceRange(sourceContent, 0, from - 1)
-
-        val body = sourceRange(sourceContent, from, to - 1).map {
-            Pair(it.key, "${TERMINAL.ANSI_YELLOW}${it.value}${TERMINAL.ANSI_RESET}")
-        }.toMap(TreeMap())
-
-        val tail = sourceRange(sourceContent, to, sourceLength)
-
-        val subsection = TreeMap<Int, SourceLine>()
-
-        head.entries.reversed().take(2).forEach { (lineNumber, newLine) ->
-            subsection[lineNumber] = SourceLine(newLine)
-        }
-
-        body.forEach { (lineNumber, newLine) ->
-            subsection.compute(lineNumber) { _, sourceLine ->
-                if (sourceLine == null) {
-                    SourceLine(newLine, true, 0)
-                } else {
-                    val offset = if (sourceLine.selected) sourceLine.offset else sourceLine.line.length
-
-                    SourceLine(sourceLine.line + newLine, true, offset)
-                }
-            }
-        }
-
-        tail.entries.take(2).forEach { (lineNumber, newLine) ->
-            subsection.compute(lineNumber) { _, sourceLine ->
-                if (sourceLine == null)
-                    SourceLine(newLine)
-                else
-                    SourceLine(sourceLine.line + newLine, sourceLine.selected, sourceLine.offset)
-            }
-        }
-
-        return SourceFile(sourceFile.filePath, subsection)
-    }
-
     protected fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, SourceFile> {
-        val pc = messageFrame.pc
-        val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
-        val bytecode = toUnprefixedString(messageFrame.code.bytes)
-        val (idxSource, pcSourceMappings) = byteCodeContractMapping.getOrPut(Pair(bytecode, contractCreation)) {
-            loadContractMapping(
-                contractCreation,
-                bytecode
-            )
-        }
+        val sourceFileBodyTransform = fun(key: Int, value: String): Pair<Int, String> = Pair(key, "${TERMINAL.ANSI_YELLOW}${value}${TERMINAL.ANSI_RESET}")
 
-        val sourceFileSelection = findSourceNear(idxSource, pcSourceMappings[pc] ?: return Pair(pcSourceMappings[pc], lastSourceFile))
-
-        if (sourceFileSelection.sourceContent.isNotEmpty()) {
-            lastSourceFile = sourceFileSelection
-        }
-
-        val outputSourceFile = if (lastSourceFile.sourceContent.isEmpty()) {
-            SourceFile(sourceContent = sortedMapOf(0 to SourceLine("No source available")))
-        } else lastSourceFile
-
-        return Pair(pcSourceMappings[pc], outputSourceFile)
-    }
-
-    private fun toUnprefixedString(bytes: org.apache.tuweni.bytes.Bytes): String {
-        val prefixedHex = bytes.toString()
-        return if (prefixedHex.startsWith("0x")) prefixedHex.substring(2) else prefixedHex
+        return SourceMappingUtils.sourceAtMessageFrame(
+            messageFrame,
+            metaFile,
+            lastSourceFile,
+            byteCodeContractMapping,
+            sourceFileBodyTransform
+        )
     }
 
     protected fun mergeSourceContent(sourceContent: SortedMap<Int, SourceLine>): List<String> {
@@ -494,6 +248,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
 
         // Source code section start
         val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
+
         val (filePath, sourceSection) = sourceFile
 
         if (metaFile != null && metaFile.exists()) {
