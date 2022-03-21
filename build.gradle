@@ -13,7 +13,7 @@ plugins {
 description 'Web3j-evm extension'
 
 ext {
-    web3jVersion = version
+    web3jVersion = '4.9.0'
     log4jVersion = '2.15.0'
     guavaVersion = '28.1-jre'
     jacksonVersion = '2.10.0'
@@ -47,6 +47,7 @@ apply {
 }
 
 repositories {
+    mavenCentral()
     maven { url "https://hyperledger.jfrog.io/artifactory/besu-maven/" }
     maven { url "https://artifacts.consensys.net/public/maven/maven/" }
     maven { url "https://splunk.jfrog.io/splunk/ext-releases-local" }
