@@ -19,6 +19,10 @@ import java.util.TreeMap
 import org.web3j.evm.entity.source.SourceLine
 
 object FileUtils {
+    fun getBaseDir(path: String): String {
+        return path.substringBefore("build", path)
+    }
+
     fun loadFile(path: String): SortedMap<Int, SourceLine> {
         return BufferedReader(FileReader(path)).use { reader ->
             reader.lineSequence()

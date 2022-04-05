@@ -45,9 +45,10 @@ object SourceMappingUtils {
             contract["srcmap-runtime"]
         } ?: return ContractMapping(emptyMap(), emptyMap())
 
+        val baseDir = FileUtils.getBaseDir(metaFile.absolutePath)
         val idxSource = sourceList
             .withIndex()
-            .map { Pair(it.index, SourceFile(it.value, FileUtils.loadFile(it.value))) }
+            .map { Pair(it.index, SourceFile(it.value, FileUtils.loadFile(baseDir + it.value))) }
             .toMap()
 
         val sourceMapElements = decompressSourceMap(srcmap)
