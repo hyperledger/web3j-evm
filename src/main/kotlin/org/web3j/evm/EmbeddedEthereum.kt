@@ -32,7 +32,6 @@ import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.transaction.CallParameter
 import org.hyperledger.besu.ethereum.vm.OperationTracer
 import org.slf4j.LoggerFactory
-import org.web3j.evm.Configuration.Companion.TEST_ACCOUNTS
 import org.web3j.protocol.core.methods.response.AccessListObject
 import org.web3j.protocol.core.methods.response.EthBlock
 import org.web3j.utils.Numeric
@@ -41,6 +40,7 @@ import java.util.Optional
 import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
+import org.web3j.evm.utils.TestAccountsConstants
 
 /**
  * Embedded Web3j Ethereum blockchain.
@@ -62,7 +62,7 @@ class EmbeddedEthereum(
      *
      * @param web3jTransaction The web3j transaction
      * @return the transaction hash
-     * @see TEST_ACCOUNTS
+     * @see TestAccountsConstants.TEST_ACCOUNTS
      */
     fun processTransaction(web3jTransaction: wTransaction): String {
         val transaction = web3jTransaction.toSignedBesuTx()
@@ -108,7 +108,7 @@ class EmbeddedEthereum(
                 .chainId(chainId)
                 .guessType()
                 .signAndBuild(
-                    TEST_ACCOUNTS[from] ?: TEST_ACCOUNTS.values.first()
+                    TestAccountsConstants.TEST_ACCOUNTS[from] ?: TestAccountsConstants.TEST_ACCOUNTS.values.first()
                 )
         }
     }
