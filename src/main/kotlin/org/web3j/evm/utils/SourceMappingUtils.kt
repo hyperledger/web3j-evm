@@ -25,6 +25,8 @@ import org.web3j.evm.entity.ContractMeta
 import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
+import java.nio.file.Path
+import java.nio.file.Paths
 
 object SourceMappingUtils {
 
@@ -45,10 +47,9 @@ object SourceMappingUtils {
             contract["srcmap-runtime"]
         } ?: return ContractMapping(emptyMap(), emptyMap())
 
-        val baseDir = FileUtils.getBaseDir(metaFile.absolutePath)
         val idxSource = sourceList
             .withIndex()
-            .map { Pair(it.index, SourceFile(it.value, FileUtils.loadFile(baseDir + it.value))) }
+            .map { Pair(it.index, SourceFile(it.value, FileUtils.loadFile(File(it.value).absolutePath))) }
             .toMap()
 
         val sourceMapElements = decompressSourceMap(srcmap)
