@@ -25,8 +25,6 @@ import org.web3j.evm.entity.ContractMeta
 import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
-import java.nio.file.Path
-import java.nio.file.Paths
 
 object SourceMappingUtils {
 
