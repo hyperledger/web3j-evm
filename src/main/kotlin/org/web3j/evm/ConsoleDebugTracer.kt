@@ -283,7 +283,8 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 }
 
                 sb.append(subText)
-                sb.append("-".repeat(FULL_WIDTH - subText.length))
+                val count = if (FULL_WIDTH > subText.length) (FULL_WIDTH - subText.length) else 0
+                sb.append("-".repeat(count))
             } else {
                 sb.append("-".repeat(FULL_WIDTH))
             }
