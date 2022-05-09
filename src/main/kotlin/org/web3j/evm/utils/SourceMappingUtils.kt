@@ -47,7 +47,12 @@ object SourceMappingUtils {
 
         val idxSource = sourceList
             .withIndex()
-            .map { Pair(it.index, SourceFile(it.value, FileUtils.loadFile(File(it.value).absolutePath))) }
+            .map {
+                Pair(
+                    it.index,
+                    SourceFile(it.value, FileUtils.loadFile(getFileAbsolutePath(metaFile.absolutePath, it.value)))
+                )
+            }
             .toMap()
 
         val sourceMapElements = decompressSourceMap(srcmap)
@@ -55,6 +60,14 @@ object SourceMappingUtils {
         val pcSourceMappings = pcSourceMap(sourceMapElements, opCodeGroups)
 
         return ContractMapping(idxSource, pcSourceMappings)
+    }
+
+    private fun getFileAbsolutePath(rootPath: String, file: String): String {
+        val baseDir = FileUtils.getBaseDir(rootPath)
+        if (file.contains(baseDir)) {
+            return file
+        }
+        return baseDir + file
     }
 
     private fun opCodeGroups(bytecode: String): List<String> {
