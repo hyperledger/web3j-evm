@@ -354,7 +354,7 @@ class EmbeddedEthereum(
         }
 
         private fun longToHex(value: Long): String {
-            return UInt256.valueOf(value).toHexString()
+            return UInt256.valueOf(value).toShortHexString()
         }
 
         private fun transactionGasLimitOrDefault(web3jTransaction: org.web3j.protocol.core.methods.request.Transaction): Long {
