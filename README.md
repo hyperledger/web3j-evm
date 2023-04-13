@@ -1,4 +1,4 @@
-# web3j-evm [![Build Status](https://travis-ci.org/web3j/web3j-evm.svg?branch=master)](https://travis-ci.org/web3j/web3j-evm)
+# web3j-evm [![Build Status](https://github.com/web3j/web3j-evm/actions/workflows/build.yml/badge.svg)](https://github.com/web3j/web3j-evm/actions/workflows/build.yml)
 
 Web3j-evm is an embedded freestanding Ethereum EVM and ledger running
 within a Java process, which can be used for unit and integration
@@ -28,8 +28,8 @@ repositories {
 }
 
 dependencies {
-    implementation "org.web3j:core:4.9.7"
-    implementation "org.web3j:web3j-evm:4.9.7"
+    implementation "org.web3j:core:4.9.8"
+    implementation "org.web3j:web3j-evm:4.9.8"
 }
 ```
 
