@@ -20,9 +20,9 @@ import java.io.InputStreamReader
 import java.util.SortedMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
-import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
-import org.hyperledger.besu.ethereum.vm.MessageFrame
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.evm.frame.ExceptionalHaltReason
+import org.hyperledger.besu.evm.frame.MessageFrame
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.web3j.evm.entity.ContractMapping
 import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
