@@ -13,13 +13,13 @@
 package org.web3j.evm
 
 import java.util.Optional
-import org.hyperledger.besu.ethereum.core.Gas
-import org.hyperledger.besu.ethereum.vm.MessageFrame
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.evm.frame.MessageFrame
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.web3j.evm.utils.NullReader
 import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
+import org.apache.tuweni.units.ethereum.Gas
 
 data class PassthroughTracerContext(val source: String = "", val filePath: String? = null, val firstSelectedLine: Int? = null, val firstSelectedOffset: Int? = null)
 
@@ -62,7 +62,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
                 PassthroughTracerContext()
             } else {
                 val source = sb.append(trimmedSourceSection.joinToString("\n")).toString()
-                val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min()
+                val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.minOrNull()
                 val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset
 
                 PassthroughTracerContext(source, filePath, firstSelectedLine, firstSelectedOffset)

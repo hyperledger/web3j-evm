@@ -12,8 +12,8 @@
  */
 package org.web3j.evm
 
-import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
 import java.lang.Exception
+import org.hyperledger.besu.evm.frame.ExceptionalHaltReason
 
 class ExceptionalHaltException(private val reasons: ExceptionalHaltReason) : Exception() {
     override val message: String

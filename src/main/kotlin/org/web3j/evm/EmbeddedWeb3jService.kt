@@ -13,8 +13,8 @@
 package org.web3j.evm
 
 import io.reactivex.Flowable
-import org.hyperledger.besu.ethereum.core.Hash
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.datatypes.Hash
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.slf4j.LoggerFactory
 import org.web3j.abi.datatypes.Address
 import org.web3j.protocol.Web3jService

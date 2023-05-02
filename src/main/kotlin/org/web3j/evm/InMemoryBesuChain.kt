@@ -23,18 +23,17 @@ import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
-import org.hyperledger.besu.ethereum.core.Address
+import org.hyperledger.besu.datatypes.Address
 import org.hyperledger.besu.ethereum.core.Block
 import org.hyperledger.besu.ethereum.core.BlockBody
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder
-import org.hyperledger.besu.ethereum.core.Hash
+import org.hyperledger.besu.datatypes.Hash
 import org.hyperledger.besu.ethereum.core.MutableWorldState
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader
 import org.hyperledger.besu.ethereum.core.Transaction
 import org.hyperledger.besu.ethereum.core.TransactionReceipt
-import org.hyperledger.besu.ethereum.core.Wei
-import org.hyperledger.besu.ethereum.core.WorldUpdater
+import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation
 import org.hyperledger.besu.ethereum.mainnet.MainnetBlockHeaderFunctions
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
@@ -47,7 +46,7 @@ import org.hyperledger.besu.ethereum.transaction.CallParameter
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulator
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulatorResult
 import org.hyperledger.besu.ethereum.vm.BlockHashLookup
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.hyperledger.besu.ethereum.worldstate.DefaultWorldStateArchive
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
@@ -56,6 +55,7 @@ import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
 import java.util.Optional
+import org.hyperledger.besu.evm.worldstate.WorldUpdater
 
 /**
  * Full in-memory Besu blockchain for easy testing.

@@ -269,7 +269,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     if (filePath == null) {
                         append("Unknown source file")
                     } else {
-                        val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
+                        val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.minOrNull() ?: 0
                         val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
 
                         append(filePath)
