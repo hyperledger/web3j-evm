@@ -37,7 +37,6 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
     @Throws(ExceptionalHaltException::class)
     fun traceExecution(
         messageFrame: MessageFrame,
-        optional: Optional<Gas>,
         executeOperation: OperationTracer.ExecuteOperation
     ) {
         if (metaFile != null && metaFile.exists()) {

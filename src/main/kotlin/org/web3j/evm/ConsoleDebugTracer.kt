@@ -424,17 +424,4 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             return TERMINAL.values().fold(input) { output, t -> output.replace(t.toString(), "") }
         }
     }
-
-    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
-        val finalOutput = nextOption(messageFrame)
-
-        executeOperation?.execute()
-
-        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
-            skipOperations.set(0)
-            operations.clear()
-            runTillEnd = false
-            println(finalOutput)
-        }
-    }
 }
