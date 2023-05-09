@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import org.hyperledger.besu.evm.frame.ExceptionalHaltReason
 import org.hyperledger.besu.evm.frame.MessageFrame
+import org.hyperledger.besu.evm.operation.Operation.OperationResult
 import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.web3j.evm.entity.ContractMapping
 import org.web3j.evm.entity.source.SourceFile
@@ -30,6 +31,7 @@ import org.web3j.evm.entity.source.SourceMapElement
 import org.web3j.evm.utils.SourceMappingUtils
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
+    private lateinit var output: String
     private val operations = ArrayList<String>()
     private val skipOperations = AtomicInteger()
     private val breakPoints = mutableMapOf<String, MutableSet<Int>>()
@@ -104,7 +106,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "clear" -> {
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Cleared ${breakPoints.size} breakpoints: ${breakPoints.entries.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
                 breakPoints.clear()
@@ -135,7 +137,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "opcodes" -> {
                 showOpcodes = true
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Showing opcodes${TERMINAL.ANSI_RESET}")
@@ -151,7 +153,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "opcodes" -> {
                 showOpcodes = false
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Hiding opcodes${TERMINAL.ANSI_RESET}")
@@ -367,32 +369,32 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     skipOperations.set(Integer.MAX_VALUE)
                     breakPoints.clear()
                 }
-                input.trim().toLowerCase() == "abort" -> {
+                input.trim().lowercase() == "abort" -> {
                     throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
                 }
-                input.trim().toLowerCase() == "next" -> {
+                input.trim().lowercase() == "next" -> {
                     if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
                     else {
                         commandOutputs.add("${TERMINAL.ANSI_CYAN}No breakpoints found${TERMINAL.ANSI_RESET}")
                         return nextOption(messageFrame, true)
                     }
                 }
-                input.trim().toLowerCase() == "end" -> {
+                input.trim().lowercase() == "end" -> {
                     runTillEnd = true
                 }
-                input.trim().toLowerCase().startsWith("break") -> {
+                input.trim().lowercase().startsWith("break") -> {
                     parseBreakPointOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase().startsWith("show") -> {
+                input.trim().lowercase().startsWith("show") -> {
                     parseShowOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase().startsWith("hide") -> {
+                input.trim().lowercase().startsWith("hide") -> {
                     parseHideOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase() == "help" -> {
+                input.trim().lowercase() == "help" -> {
                     showHelp()
                     return nextOption(messageFrame, true)
                 }
@@ -423,5 +425,18 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         private fun cleanString(input: String): String {
             return TERMINAL.values().fold(input) { output, t -> output.replace(t.toString(), "") }
         }
+    }
+
+    override fun tracePostExecution(messageFrame: MessageFrame, result: OperationResult?) {
+        if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
+            skipOperations.set(0)
+            operations.clear()
+            runTillEnd = false
+            println(output)
+        }
+    }
+
+    override fun tracePreExecution(messageFrame: MessageFrame) {
+        output = nextOption(messageFrame)
     }
 }

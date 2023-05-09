@@ -100,5 +100,10 @@ configurations.all {
     }
 }
 
+tasks.named("spotlessKotlin").configure { dependsOn("compileKotlin","spotlessJava", "spotlessGroovyGradle","processTestResources") }
+tasks.named("spotlessJava").configure { dependsOn("compileTestJava","compileTestKotlin","compileKotlin","compileTestKotlin","spotlessGroovyGradle","processTestResources") }
+tasks.named("test").configure { dependsOn("spotlessKotlin","spotlessJava") }
+
+
 // To publish in mavenLocal()
 // tasks.withType(Sign)*.enabled = false

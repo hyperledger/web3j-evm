@@ -88,7 +88,7 @@ object SourceMappingUtils {
     }
 
     private fun opCodeToOpSize(opCode: String): Int {
-        return when (opCode.toUpperCase()) {
+        return when (opCode.uppercase()) {
             "60" -> 2
             "61" -> 3
             "62" -> 4

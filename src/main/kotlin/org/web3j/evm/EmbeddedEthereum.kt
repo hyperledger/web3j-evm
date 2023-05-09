@@ -94,7 +94,7 @@ class EmbeddedEthereum(
             } else {
                 hexToULong(nonce)
             }
-            val from = (from ?: "0x0").toLowerCase()
+            val from = (from ?: "0x0").lowercase()
 
             // TODO should we add support for account 0x0 fake signature?
             return Transaction.builder()
@@ -244,6 +244,7 @@ class EmbeddedEthereum(
                 tcr.nonce,
                 tcr.blockHash,
                 tcr.blockNumber,
+                tcr.chainId,
                 tcr.transactionIndex,
                 tcr.from,
                 tcr.to,

@@ -29,7 +29,8 @@ public class TestnetConfig implements IntegrationTestConfig {
     public String validBlockHash() {
         // genesis block hash
         // return "0xff96cc2ceaddefcfd1933ac5eb652a8c8668708beb3e5c0eff54aea202140012";
-        return "0xa08d1edb37ba1c62db764ef7c2566cbe368b850f5b3762c6c24114a3fd97b87f";
+        // return "0xa08d1edb37ba1c62db764ef7c2566cbe368b850f5b3762c6c24114a3fd97b87f";
+        return "0x2f2a939c2cdd8918be11a55a1e7db412861ed477ed927d8f122b55ccd0f8bbcb";
     }
 
     @Override
