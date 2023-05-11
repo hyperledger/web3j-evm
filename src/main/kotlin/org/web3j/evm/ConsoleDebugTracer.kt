@@ -29,15 +29,16 @@ import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
 import org.web3j.evm.utils.SourceMappingUtils
+import org.web3j.utils.Numeric
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
-    private lateinit var output: String
     private val operations = ArrayList<String>()
     private val skipOperations = AtomicInteger()
     private val breakPoints = mutableMapOf<String, MutableSet<Int>>()
     private val commandOutputs = mutableListOf<String>()
     private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
+    private lateinit var output: String
     private var runTillEnd = false
     private var showOpcodes = true
     private var showStack = true
@@ -189,7 +190,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val stackOutput = ArrayList<String>()
 
         for (i in 0 until messageFrame.stackSize()) {
-            stackOutput.add(String.format(NUMBER_FORMAT, i) + " " + messageFrame.getStackItem(i))
+            stackOutput.add(String.format(NUMBER_FORMAT, i) + " " + Numeric.toHexStringWithPrefixZeroPadded(messageFrame.getStackItem(i).toUnsignedBigInteger(), MAX_STACK_ITEM_LENGTH))
         }
 
         val sb = StringBuilder()
@@ -417,6 +418,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     }
 
     companion object {
+        private const val MAX_STACK_ITEM_LENGTH = 64
         private const val OP_CODES_WIDTH = 30
         private const val FULL_WIDTH = OP_CODES_WIDTH + 77
         private const val NUMBER_FORMAT = "0x%08x"
