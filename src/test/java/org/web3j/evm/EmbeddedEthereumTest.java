@@ -16,7 +16,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.hyperledger.besu.ethereum.vm.OperationTracer;
+import org.hyperledger.besu.evm.tracing.OperationTracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -23,14 +23,14 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionRec
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
-import org.hyperledger.besu.ethereum.core.Address
-import org.hyperledger.besu.ethereum.core.Hash
+import org.hyperledger.besu.datatypes.Address
+import org.hyperledger.besu.datatypes.Hash
 import org.hyperledger.besu.ethereum.core.Transaction
-import org.hyperledger.besu.ethereum.core.Wei
+import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.transaction.CallParameter
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.methods.response.AccessListObject
 import org.web3j.protocol.core.methods.response.EthBlock
@@ -94,7 +94,7 @@ class EmbeddedEthereum(
             } else {
                 hexToULong(nonce)
             }
-            val from = (from ?: "0x0").toLowerCase()
+            val from = (from ?: "0x0").lowercase()
 
             // TODO should we add support for account 0x0 fake signature?
             return Transaction.builder()
@@ -244,6 +244,7 @@ class EmbeddedEthereum(
                 tcr.nonce,
                 tcr.blockHash,
                 tcr.blockNumber,
+                tcr.chainId,
                 tcr.transactionIndex,
                 tcr.from,
                 tcr.to,

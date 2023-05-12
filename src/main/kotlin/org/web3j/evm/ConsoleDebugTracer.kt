@@ -20,14 +20,16 @@ import java.io.InputStreamReader
 import java.util.SortedMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
-import org.hyperledger.besu.ethereum.vm.ExceptionalHaltReason
-import org.hyperledger.besu.ethereum.vm.MessageFrame
-import org.hyperledger.besu.ethereum.vm.OperationTracer
+import org.hyperledger.besu.evm.frame.ExceptionalHaltReason
+import org.hyperledger.besu.evm.frame.MessageFrame
+import org.hyperledger.besu.evm.operation.Operation.OperationResult
+import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.web3j.evm.entity.ContractMapping
 import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
 import org.web3j.evm.utils.SourceMappingUtils
+import org.web3j.utils.Numeric
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
@@ -36,6 +38,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     private val commandOutputs = mutableListOf<String>()
     private val byteCodeContractMapping = HashMap<Pair<String, Boolean>, ContractMapping>()
 
+    private lateinit var output: String
     private var runTillEnd = false
     private var showOpcodes = true
     private var showStack = true
@@ -104,7 +107,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "clear" -> {
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Cleared ${breakPoints.size} breakpoints: ${breakPoints.entries.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
                 breakPoints.clear()
@@ -135,7 +138,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "opcodes" -> {
                 showOpcodes = true
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Showing opcodes${TERMINAL.ANSI_RESET}")
@@ -151,7 +154,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val inputParts = input.split(" +".toRegex())
         if (inputParts.size < 2) return
 
-        when (inputParts[1].toLowerCase()) {
+        when (inputParts[1].lowercase()) {
             "opcodes" -> {
                 showOpcodes = false
                 commandOutputs.add("${TERMINAL.ANSI_CYAN}Hiding opcodes${TERMINAL.ANSI_RESET}")
@@ -187,7 +190,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         val stackOutput = ArrayList<String>()
 
         for (i in 0 until messageFrame.stackSize()) {
-            stackOutput.add(String.format(NUMBER_FORMAT, i) + " " + messageFrame.getStackItem(i))
+            stackOutput.add(String.format(NUMBER_FORMAT, i) + " " + Numeric.toHexStringWithPrefixZeroPadded(messageFrame.getStackItem(i).toUnsignedBigInteger(), MAX_STACK_ITEM_LENGTH))
         }
 
         val sb = StringBuilder()
@@ -269,7 +272,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     if (filePath == null) {
                         append("Unknown source file")
                     } else {
-                        val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.min() ?: 0
+                        val firstSelectedLine = sourceSection.entries.filter { it.value.selected }.map { it.key }.minOrNull() ?: 0
                         val firstSelectedOffset = sourceSection[firstSelectedLine]?.offset ?: 0
 
                         append(filePath)
@@ -367,32 +370,32 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     skipOperations.set(Integer.MAX_VALUE)
                     breakPoints.clear()
                 }
-                input.trim().toLowerCase() == "abort" -> {
+                input.trim().lowercase() == "abort" -> {
                     throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
                 }
-                input.trim().toLowerCase() == "next" -> {
+                input.trim().lowercase() == "next" -> {
                     if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
                     else {
                         commandOutputs.add("${TERMINAL.ANSI_CYAN}No breakpoints found${TERMINAL.ANSI_RESET}")
                         return nextOption(messageFrame, true)
                     }
                 }
-                input.trim().toLowerCase() == "end" -> {
+                input.trim().lowercase() == "end" -> {
                     runTillEnd = true
                 }
-                input.trim().toLowerCase().startsWith("break") -> {
+                input.trim().lowercase().startsWith("break") -> {
                     parseBreakPointOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase().startsWith("show") -> {
+                input.trim().lowercase().startsWith("show") -> {
                     parseShowOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase().startsWith("hide") -> {
+                input.trim().lowercase().startsWith("hide") -> {
                     parseHideOption(input)
                     return nextOption(messageFrame, true)
                 }
-                input.trim().toLowerCase() == "help" -> {
+                input.trim().lowercase() == "help" -> {
                     showHelp()
                     return nextOption(messageFrame, true)
                 }
@@ -415,6 +418,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     }
 
     companion object {
+        private const val MAX_STACK_ITEM_LENGTH = 64
         private const val OP_CODES_WIDTH = 30
         private const val FULL_WIDTH = OP_CODES_WIDTH + 77
         private const val NUMBER_FORMAT = "0x%08x"
@@ -425,16 +429,16 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         }
     }
 
-    override fun traceExecution(messageFrame: MessageFrame, executeOperation: OperationTracer.ExecuteOperation?) {
-        val finalOutput = nextOption(messageFrame)
-
-        executeOperation?.execute()
-
+    override fun tracePostExecution(messageFrame: MessageFrame, result: OperationResult?) {
         if (messageFrame.state != MessageFrame.State.CODE_EXECUTING) {
             skipOperations.set(0)
             operations.clear()
             runTillEnd = false
-            println(finalOutput)
+            println(output)
         }
+    }
+
+    override fun tracePreExecution(messageFrame: MessageFrame) {
+        output = nextOption(messageFrame)
     }
 }

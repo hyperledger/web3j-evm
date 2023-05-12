@@ -19,7 +19,7 @@ import java.util.TreeMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.min
-import org.hyperledger.besu.ethereum.vm.MessageFrame
+import org.hyperledger.besu.evm.frame.MessageFrame
 import org.web3j.evm.entity.ContractMapping
 import org.web3j.evm.entity.ContractMeta
 import org.web3j.evm.entity.source.SourceFile
@@ -88,7 +88,7 @@ object SourceMappingUtils {
     }
 
     private fun opCodeToOpSize(opCode: String): Int {
-        return when (opCode.toUpperCase()) {
+        return when (opCode.uppercase()) {
             "60" -> 2
             "61" -> 3
             "62" -> 4
