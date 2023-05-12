@@ -3,12 +3,12 @@ plugins {
     id 'maven-publish'
     id 'idea'
     id 'jacoco'
-    id "com.jfrog.bintray" version "1.8.4"
-    id "com.diffplug.gradle.spotless" version "4.5.1"
+    id 'com.jfrog.bintray' version '1.8.4'
+    id 'com.diffplug.gradle.spotless' version '4.5.1'
     id 'io.codearte.nexus-staging' version '0.21.1'
-    id "de.marcphilipp.nexus-publish" version "0.4.0"
+    id 'de.marcphilipp.nexus-publish' version '0.4.0'
     id 'org.jetbrains.kotlin.jvm' version '1.6.21'
-    id "de.undercouch.download" version "4.0.0"
+    id 'de.undercouch.download' version '4.0.0'
 }
 
 description 'Web3j-evm extension'
@@ -49,7 +49,6 @@ apply {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven { url "https://hyperledger.jfrog.io/artifactory/besu-maven/" }
     maven { url "https://artifacts.consensys.net/public/maven/maven/" }
