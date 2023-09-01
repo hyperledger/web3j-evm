@@ -9,6 +9,7 @@ task downloadJavaLicense(type: Download) {
     onlyIfModified true
 }
 
+
 task downloadFormatterProperties(type: Download) {
     src 'https://raw.githubusercontent.com/web3j/build-tools/master/gradle/spotless/formatter.properties'
     dest new File("$rootDir/gradle/spotless",'formatter.properties')

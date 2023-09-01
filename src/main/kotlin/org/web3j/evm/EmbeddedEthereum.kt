@@ -40,7 +40,9 @@ import java.util.Optional
 import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter
 import org.web3j.evm.utils.TestAccountsConstants
+import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
 
 /**
  * Embedded Web3j Ethereum blockchain.
@@ -309,8 +311,17 @@ class EmbeddedEthereum(
             transactionResults,
             null, // TODO?
             null, // TODO?
-            blockResult.baseFeePerGas
+            blockResult.baseFeePerGas,
+            blockResult.withdrawalsRoot,
+            blockResult.withdrawals?.map { withdrawalParameter ->
+                toWithdrawal(withdrawalParameter)
+            }?.toList()
         )
+    }
+
+    private fun toWithdrawal(withdrawalParameter: WithdrawalParameter): Withdrawal {
+        val withdrawal = withdrawalParameter.toWithdrawal()
+        return Withdrawal(withdrawal.index.toString(), withdrawal.validatorIndex.toString(), withdrawal.address.toHexString(), withdrawal.amount.toHexString())
     }
 
     fun ethGetCode(w3jAddress: wAddress, defaultBlockParameter: String): String {
