@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
 import java.util.Optional
+import org.hyperledger.besu.ethereum.storage.keyvalue.VariablesKeyValueStorage
 import org.hyperledger.besu.ethereum.vm.CachingBlockHashLookup
 import org.hyperledger.besu.evm.internal.EvmConfiguration
 import org.hyperledger.besu.evm.worldstate.WorldUpdater
@@ -105,8 +106,9 @@ class InMemoryBesuChain(
         )
 
         val keyValueStorage = InMemoryKeyValueStorage()
+        val variablesStorage = VariablesKeyValueStorage(keyValueStorage)
         val blockchainStorage = KeyValueStoragePrefixedKeyBlockchainStorage(
-            keyValueStorage, MainnetBlockHeaderFunctions()
+            keyValueStorage, variablesStorage, MainnetBlockHeaderFunctions()
         )
         val worldStateStorage = WorldStateKeyValueStorage(InMemoryKeyValueStorage())
         val worldStatePreimageStorage = WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
