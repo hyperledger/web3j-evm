@@ -41,6 +41,8 @@ import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter
+import org.hyperledger.besu.ethereum.mainnet.DefaultProtocolSchedule
+import org.hyperledger.besu.ethereum.mainnet.ProtocolSpec
 import org.web3j.evm.utils.TestAccountsConstants
 import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
 
@@ -123,8 +125,10 @@ class EmbeddedEthereum(
     fun getTransactionReceipt(transactionHashParam: String): wTransactionReceipt? {
         val hash = Hash.fromHexStringLenient(transactionHashParam)
 
+        val defaultProtocolSchedule = DefaultProtocolSchedule(Optional.of(chain.chainId))
+        defaultProtocolSchedule.putBlockNumberMilestone(0, ProtocolSpec())
         val result = blockchainQueries
-            .transactionReceiptByTransactionHash(hash)
+            .transactionReceiptByTransactionHash(hash, DefaultProtocolSchedule(Optional.of(chain.chainId)))
             .map { receipt -> getResult(receipt) }
             .orElse(null)
             ?: return null
@@ -260,12 +264,13 @@ class EmbeddedEthereum(
                 tcr.r,
                 tcr.s,
                 hexToULong(tcr.v),
+                tcr.yParity,
                 tcr.type,
                 tcr.maxFeePerGas,
                 tcr.maxPriorityFeePerGas,
                 tcr.accessList?.map {
                     AccessListObject(
-                        it.address.toHexString(),
+                        it.address.toString(),
                         mutableListOf(it.storageKeys.toString())
                     )
                 }
