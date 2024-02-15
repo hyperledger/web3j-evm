@@ -292,7 +292,7 @@ class InMemoryBesuChain(
 
     companion object {
         private val LOG = LoggerFactory.getLogger(InMemoryBesuChain::class.java)
-        private val DEFAULT_GENESIS_OVERRIDES = mapOf(
+        internal val DEFAULT_GENESIS_OVERRIDES = mapOf(
             "londonblock" to "1",
             "petersburgblock" to "0"
         )
