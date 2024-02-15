@@ -40,7 +40,15 @@ import java.util.Optional
 import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
+import com.google.common.io.Resources
+import java.nio.charset.StandardCharsets
+import org.hyperledger.besu.cli.config.EthNetworkConfig
+import org.hyperledger.besu.cli.config.NetworkName
+import org.hyperledger.besu.config.GenesisConfigFile
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter
+import org.hyperledger.besu.ethereum.core.PrivacyParameters
+import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
+import org.hyperledger.besu.evm.internal.EvmConfiguration
 import org.web3j.evm.utils.TestAccountsConstants
 import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
 
@@ -48,7 +56,7 @@ import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
  * Embedded Web3j Ethereum blockchain.
  */
 class EmbeddedEthereum(
-    configuration: Configuration,
+    private val configuration: Configuration,
     operationTracer: OperationTracer
 ) {
     private val chain = InMemoryBesuChain(configuration, operationTracer)
@@ -123,8 +131,29 @@ class EmbeddedEthereum(
     fun getTransactionReceipt(transactionHashParam: String): wTransactionReceipt? {
         val hash = Hash.fromHexStringLenient(transactionHashParam)
 
+        val genesisConfig = if (configuration.genesisFileUrl === null) {
+            val networkConfig = EthNetworkConfig.getNetworkConfig(NetworkName.DEV)
+            GenesisConfigFile.fromConfig(networkConfig.genesisConfig)
+        } else {
+            GenesisConfigFile.fromConfig(
+                @Suppress("UnstableApiUsage")
+                Resources.toString(
+                    configuration.genesisFileUrl,
+                    StandardCharsets.UTF_8
+                )
+            )
+        }
+        val configOptions = genesisConfig.getConfigOptions(InMemoryBesuChain.DEFAULT_GENESIS_OVERRIDES)
+
+        val protocolSchedule = MainnetProtocolSchedule.fromConfig(
+            configOptions,
+            PrivacyParameters.DEFAULT,
+            true,
+            EvmConfiguration.DEFAULT
+        )
+
         val result = blockchainQueries
-            .transactionReceiptByTransactionHash(hash)
+            .transactionReceiptByTransactionHash(hash, protocolSchedule)
             .map { receipt -> getResult(receipt) }
             .orElse(null)
             ?: return null
@@ -260,12 +289,13 @@ class EmbeddedEthereum(
                 tcr.r,
                 tcr.s,
                 hexToULong(tcr.v),
+                tcr.yParity,
                 tcr.type,
                 tcr.maxFeePerGas,
                 tcr.maxPriorityFeePerGas,
                 tcr.accessList?.map {
                     AccessListObject(
-                        it.address.toHexString(),
+                        it.address.toString(),
                         mutableListOf(it.storageKeys.toString())
                     )
                 }

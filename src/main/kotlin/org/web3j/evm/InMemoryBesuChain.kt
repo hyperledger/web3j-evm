@@ -40,13 +40,13 @@ import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ScheduleBasedBlockHeaderFunctions
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStoragePrefixedKeyBlockchainStorage
-import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage
+import org.hyperledger.besu.ethereum.trie.forest.storage.ForestWorldStateKeyValueStorage
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStatePreimageKeyValueStorage
 import org.hyperledger.besu.ethereum.transaction.CallParameter
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulator
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulatorResult
 import org.hyperledger.besu.evm.tracing.OperationTracer
-import org.hyperledger.besu.ethereum.worldstate.DefaultWorldStateArchive
+import org.hyperledger.besu.ethereum.trie.forest.ForestWorldStateArchive
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
@@ -110,12 +110,13 @@ class InMemoryBesuChain(
         val blockchainStorage = KeyValueStoragePrefixedKeyBlockchainStorage(
             keyValueStorage, variablesStorage, MainnetBlockHeaderFunctions()
         )
-        val worldStateStorage = WorldStateKeyValueStorage(InMemoryKeyValueStorage())
+        val worldStateStorage = ForestWorldStateKeyValueStorage(InMemoryKeyValueStorage())
         val worldStatePreimageStorage = WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
 
-        worldStateArchive = DefaultWorldStateArchive(
+        worldStateArchive = ForestWorldStateArchive(
             worldStateStorage,
-            worldStatePreimageStorage
+            worldStatePreimageStorage,
+            EvmConfiguration.DEFAULT
         )
         worldState = worldStateArchive.mutable
         worldStateUpdater = worldState.updater()
@@ -150,7 +151,8 @@ class InMemoryBesuChain(
         simulator = TransactionSimulator(
             blockChain,
             worldStateArchive,
-            protocolSchedule
+            protocolSchedule,
+            0L
         )
     }
 
@@ -283,14 +285,14 @@ class InMemoryBesuChain(
         val spec = protocolSchedule.getByBlockHeader(blockChain.chainHeadHeader)
         val coinbaseReward: Wei = spec.blockReward
         val updater = worldState.updater()
-        val coinbase = updater.getOrCreate(coinbaseAddress).mutable
+        val coinbase = updater.getOrCreate(coinbaseAddress)
         coinbase.incrementBalance(coinbaseReward)
         updater.commit()
     }
 
     companion object {
         private val LOG = LoggerFactory.getLogger(InMemoryBesuChain::class.java)
-        private val DEFAULT_GENESIS_OVERRIDES = mapOf(
+        internal val DEFAULT_GENESIS_OVERRIDES = mapOf(
             "londonblock" to "1",
             "petersburgblock" to "0"
         )
