@@ -7,11 +7,25 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
+*
+
+### Features
+
+*
+
+### BREAKING CHANGES
+
+*
+
+# [4.11.2](https://github.com/web3j/web3j-evm/releases/tag/v4.11.2) (2024-03-27)
+
+### Bug Fixes
+
 * 
 
 ### Features
 
-* 
+* Web3J upgrade and Bump version [#104](https://github.com/web3j/web3j-evm/pull/104)
 
 ### BREAKING CHANGES
 
