@@ -25,7 +25,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Features
 
-* 
+* Web3J upgrade and Bump version [#104](https://github.com/web3j/web3j-evm/pull/104)
 
 ### BREAKING CHANGES
 
