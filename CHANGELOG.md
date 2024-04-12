@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [4.11.2]() (Upcoming)
+# [4.11.3]() (Upcoming)
 
 ### Bug Fixes
 
@@ -11,11 +11,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Features
 
-*
+* bump snapshot version to 4.11.3 [#104](https://github.com/hyperledger/web3j-evm/pull/104)
 
 ### BREAKING CHANGES
 
-*
+* Master branch rename to main and repo migration fixes [#106](https://github.com/hyperledger/web3j-evm/pull/106)
 
 # [4.11.2](https://github.com/web3j/web3j-evm/releases/tag/v4.11.2) (2024-03-27)
 
@@ -25,7 +25,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Features
 
-* Web3J upgrade and Bump version [#104](https://github.com/web3j/web3j-evm/pull/104)
+* Web3J upgrade and Bump version [#103](https://github.com/web3j/web3j-evm/pull/103)
 
 ### BREAKING CHANGES
 
