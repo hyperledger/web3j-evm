@@ -12,6 +12,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Features
 
 * bump snapshot version to 4.11.3 [#104](https://github.com/hyperledger/web3j-evm/pull/104)
+* Web3j version update [#107](https://github.com/hyperledger/web3j-evm/pull/107)
 
 ### BREAKING CHANGES
 
