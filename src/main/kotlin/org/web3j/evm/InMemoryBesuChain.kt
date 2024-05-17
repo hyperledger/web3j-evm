@@ -17,47 +17,47 @@ import org.apache.tuweni.bytes.Bytes
 import org.hyperledger.besu.cli.config.EthNetworkConfig
 import org.hyperledger.besu.cli.config.NetworkName
 import org.hyperledger.besu.config.GenesisConfigFile
+import org.hyperledger.besu.datatypes.Address
+import org.hyperledger.besu.datatypes.Hash
+import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResultFactory
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries
 import org.hyperledger.besu.ethereum.chain.DefaultBlockchain
 import org.hyperledger.besu.ethereum.chain.GenesisState
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain
-import org.hyperledger.besu.datatypes.Address
 import org.hyperledger.besu.ethereum.core.Block
 import org.hyperledger.besu.ethereum.core.BlockBody
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder
-import org.hyperledger.besu.datatypes.Hash
 import org.hyperledger.besu.ethereum.core.MutableWorldState
 import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader
 import org.hyperledger.besu.ethereum.core.Transaction
 import org.hyperledger.besu.ethereum.core.TransactionReceipt
-import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation
 import org.hyperledger.besu.ethereum.mainnet.MainnetBlockHeaderFunctions
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.ScheduleBasedBlockHeaderFunctions
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueStoragePrefixedKeyBlockchainStorage
-import org.hyperledger.besu.ethereum.trie.forest.storage.ForestWorldStateKeyValueStorage
+import org.hyperledger.besu.ethereum.storage.keyvalue.VariablesKeyValueStorage
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStatePreimageKeyValueStorage
 import org.hyperledger.besu.ethereum.transaction.CallParameter
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulator
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulatorResult
-import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.hyperledger.besu.ethereum.trie.forest.ForestWorldStateArchive
+import org.hyperledger.besu.ethereum.trie.forest.storage.ForestWorldStateKeyValueStorage
+import org.hyperledger.besu.ethereum.vm.CachingBlockHashLookup
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive
+import org.hyperledger.besu.evm.internal.EvmConfiguration
+import org.hyperledger.besu.evm.tracing.OperationTracer
+import org.hyperledger.besu.evm.worldstate.WorldUpdater
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
 import java.util.Optional
-import org.hyperledger.besu.ethereum.storage.keyvalue.VariablesKeyValueStorage
-import org.hyperledger.besu.ethereum.vm.CachingBlockHashLookup
-import org.hyperledger.besu.evm.internal.EvmConfiguration
-import org.hyperledger.besu.evm.worldstate.WorldUpdater
 
 /**
  * Full in-memory Besu blockchain for easy testing.
@@ -66,7 +66,7 @@ class InMemoryBesuChain(
     configuration: Configuration,
     private val operationTracer: OperationTracer,
     networkName: NetworkName = NetworkName.DEV,
-    genesisConfigOverrides: Map<String, String> = DEFAULT_GENESIS_OVERRIDES
+    genesisConfigOverrides: Map<String, String> = DEFAULT_GENESIS_OVERRIDES,
 ) {
     val chainId: BigInteger
     val blockchainQueries: BlockchainQueries
@@ -92,8 +92,8 @@ class InMemoryBesuChain(
                 @Suppress("UnstableApiUsage")
                 Resources.toString(
                     configuration.genesisFileUrl,
-                    StandardCharsets.UTF_8
-                )
+                    StandardCharsets.UTF_8,
+                ),
             )
         }
         val configOptions = genesisConfig.getConfigOptions(genesisConfigOverrides)
@@ -102,13 +102,15 @@ class InMemoryBesuChain(
             configOptions,
             PrivacyParameters.DEFAULT,
             true,
-            EvmConfiguration.DEFAULT
+            EvmConfiguration.DEFAULT,
         )
 
         val keyValueStorage = InMemoryKeyValueStorage()
         val variablesStorage = VariablesKeyValueStorage(keyValueStorage)
         val blockchainStorage = KeyValueStoragePrefixedKeyBlockchainStorage(
-            keyValueStorage, variablesStorage, MainnetBlockHeaderFunctions()
+            keyValueStorage,
+            variablesStorage,
+            MainnetBlockHeaderFunctions(),
         )
         val worldStateStorage = ForestWorldStateKeyValueStorage(InMemoryKeyValueStorage())
         val worldStatePreimageStorage = WorldStatePreimageKeyValueStorage(InMemoryKeyValueStorage())
@@ -116,7 +118,7 @@ class InMemoryBesuChain(
         worldStateArchive = ForestWorldStateArchive(
             worldStateStorage,
             worldStatePreimageStorage,
-            EvmConfiguration.DEFAULT
+            EvmConfiguration.DEFAULT,
         )
         worldState = worldStateArchive.mutable
         worldStateUpdater = worldState.updater()
@@ -130,7 +132,7 @@ class InMemoryBesuChain(
             genesisState.block,
             blockchainStorage,
             NoOpMetricsSystem(),
-            0
+            0,
         )
 
         // Create accounts from configuration
@@ -140,7 +142,7 @@ class InMemoryBesuChain(
         worldStateUpdater.createAccount(
             Address.fromHexString(configuration.testAddress),
             0,
-            Wei.fromEth(configuration.ethFund)
+            Wei.fromEth(configuration.ethFund),
         )
 
         worldStateUpdater.commit()
@@ -152,7 +154,7 @@ class InMemoryBesuChain(
             blockChain,
             worldStateArchive,
             protocolSchedule,
-            0L
+            0L,
         )
     }
 
@@ -187,7 +189,7 @@ class InMemoryBesuChain(
             operationTracer,
             blockHashLookup,
             true,
-            Wei.MAX_WEI
+            Wei.MAX_WEI,
         )
 
         if (result.isInvalid) {
@@ -204,7 +206,7 @@ class InMemoryBesuChain(
             transaction.type,
             result,
             worldState,
-            gasUsed
+            gasUsed,
         )
         val receipts = listOf(transactionReceipt)
 
@@ -249,8 +251,7 @@ class InMemoryBesuChain(
             .buildProcessableBlockHeader()
     }
 
-    fun call(callParameter: CallParameter):
-            Optional<TransactionSimulatorResult> {
+    fun call(callParameter: CallParameter): Optional<TransactionSimulatorResult> {
         return simulator.processAtHead(callParameter)
     }
 
@@ -280,7 +281,7 @@ class InMemoryBesuChain(
 
     private fun rewardMiner(
         worldState: MutableWorldState,
-        coinbaseAddress: Address
+        coinbaseAddress: Address,
     ) {
         val spec = protocolSchedule.getByBlockHeader(blockChain.chainHeadHeader)
         val coinbaseReward: Wei = spec.blockReward
@@ -294,7 +295,7 @@ class InMemoryBesuChain(
         private val LOG = LoggerFactory.getLogger(InMemoryBesuChain::class.java)
         internal val DEFAULT_GENESIS_OVERRIDES = mapOf(
             "londonblock" to "1",
-            "petersburgblock" to "0"
+            "petersburgblock" to "0",
         )
     }
 }

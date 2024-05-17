@@ -12,9 +12,17 @@
  */
 package org.web3j.evm
 
+import com.google.common.io.Resources
 import org.apache.tuweni.bytes.Bytes
 import org.apache.tuweni.units.bigints.UInt256
+import org.hyperledger.besu.cli.config.EthNetworkConfig
+import org.hyperledger.besu.cli.config.NetworkName
+import org.hyperledger.besu.config.GenesisConfigFile
+import org.hyperledger.besu.datatypes.Address
+import org.hyperledger.besu.datatypes.Hash
+import org.hyperledger.besu.datatypes.Wei
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.BlockParameter
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.BlockResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionCompleteResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionHashResult
@@ -23,41 +31,33 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionRec
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptRootResult
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.TransactionReceiptStatusResult
 import org.hyperledger.besu.ethereum.api.query.TransactionReceiptWithMetadata
-import org.hyperledger.besu.datatypes.Address
-import org.hyperledger.besu.datatypes.Hash
+import org.hyperledger.besu.ethereum.core.PrivacyParameters
 import org.hyperledger.besu.ethereum.core.Transaction
-import org.hyperledger.besu.datatypes.Wei
+import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
 import org.hyperledger.besu.ethereum.mainnet.TransactionReceiptType
 import org.hyperledger.besu.ethereum.rlp.RLP
 import org.hyperledger.besu.ethereum.transaction.CallParameter
+import org.hyperledger.besu.evm.internal.EvmConfiguration
 import org.hyperledger.besu.evm.tracing.OperationTracer
 import org.slf4j.LoggerFactory
+import org.web3j.evm.utils.TestAccountsConstants
 import org.web3j.protocol.core.methods.response.AccessListObject
 import org.web3j.protocol.core.methods.response.EthBlock
+import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
 import org.web3j.utils.Numeric
 import java.math.BigInteger
+import java.nio.charset.StandardCharsets
 import java.util.Optional
 import org.web3j.abi.datatypes.Address as wAddress
 import org.web3j.protocol.core.methods.request.Transaction as wTransaction
 import org.web3j.protocol.core.methods.response.TransactionReceipt as wTransactionReceipt
-import com.google.common.io.Resources
-import java.nio.charset.StandardCharsets
-import org.hyperledger.besu.cli.config.EthNetworkConfig
-import org.hyperledger.besu.cli.config.NetworkName
-import org.hyperledger.besu.config.GenesisConfigFile
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter
-import org.hyperledger.besu.ethereum.core.PrivacyParameters
-import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule
-import org.hyperledger.besu.evm.internal.EvmConfiguration
-import org.web3j.evm.utils.TestAccountsConstants
-import org.web3j.protocol.core.methods.response.EthBlock.Withdrawal
 
 /**
  * Embedded Web3j Ethereum blockchain.
  */
 class EmbeddedEthereum(
     private val configuration: Configuration,
-    operationTracer: OperationTracer
+    operationTracer: OperationTracer,
 ) {
     private val chain = InMemoryBesuChain(configuration, operationTracer)
     private val blockchainQueries = chain.blockchainQueries
@@ -118,7 +118,7 @@ class EmbeddedEthereum(
                 .chainId(chainId)
                 .guessType()
                 .signAndBuild(
-                    TestAccountsConstants.TEST_ACCOUNTS[from] ?: TestAccountsConstants.TEST_ACCOUNTS.values.first()
+                    TestAccountsConstants.TEST_ACCOUNTS[from] ?: TestAccountsConstants.TEST_ACCOUNTS.values.first(),
                 )
         }
     }
@@ -139,8 +139,8 @@ class EmbeddedEthereum(
                 @Suppress("UnstableApiUsage")
                 Resources.toString(
                     configuration.genesisFileUrl,
-                    StandardCharsets.UTF_8
-                )
+                    StandardCharsets.UTF_8,
+                ),
             )
         }
         val configOptions = genesisConfig.getConfigOptions(InMemoryBesuChain.DEFAULT_GENESIS_OVERRIDES)
@@ -149,7 +149,7 @@ class EmbeddedEthereum(
             configOptions,
             PrivacyParameters.DEFAULT,
             true,
-            EvmConfiguration.DEFAULT
+            EvmConfiguration.DEFAULT,
         )
 
         val result = blockchainQueries
@@ -189,7 +189,7 @@ class EmbeddedEthereum(
             logsBloom,
             "",
             "",
-            effectiveGasPrice
+            effectiveGasPrice,
 
         )
     }
@@ -216,7 +216,7 @@ class EmbeddedEthereum(
             address,
             data,
             type,
-            topics
+            topics,
         )
     }
 
@@ -229,7 +229,7 @@ class EmbeddedEthereum(
     }
 
     fun ethCall(
-        web3jTransaction: wTransaction
+        web3jTransaction: wTransaction,
     ): String {
         val result = chain.call(web3jTransaction.asCallParameter())
         // TODO handle errors/**/
@@ -237,7 +237,7 @@ class EmbeddedEthereum(
     }
 
     fun estimateGas(
-        web3jTransaction: wTransaction
+        web3jTransaction: wTransaction,
     ): String {
         val result = chain.call(web3jTransaction.asCallParameter())
         return longToHex(result.get().result.estimateGasUsedByTransaction)
@@ -249,7 +249,7 @@ class EmbeddedEthereum(
 
     fun ethGetBalance(
         w3jAddress: org.web3j.abi.datatypes.Address,
-        @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String
+        @Suppress("UNUSED_PARAMETER") defaultBlockParameter: String,
     ): String? {
         return blockchainQueries
             .accountBalance(Address.fromHexString(w3jAddress.value), blockchainQueries.headBlockNumber())
@@ -296,9 +296,9 @@ class EmbeddedEthereum(
                 tcr.accessList?.map {
                     AccessListObject(
                         it.address.toString(),
-                        mutableListOf(it.storageKeys.toString())
+                        mutableListOf(it.storageKeys.toString()),
                     )
-                }
+                },
             )
         }
     }
@@ -307,16 +307,17 @@ class EmbeddedEthereum(
         return blockResult.transactions.map {
             val thr = it as TransactionHashResult
             EthBlock.TransactionHash(
-                thr.hash
+                thr.hash,
             )
         }
     }
 
     private fun ethBlockByBlockResult(blockResult: BlockResult, fullTransactionObjects: Boolean): EthBlock.Block? {
-        val transactionResults = if (fullTransactionObjects)
+        val transactionResults = if (fullTransactionObjects) {
             ethBlockFullTransactionObject(blockResult)
-        else
+        } else {
             ethBlockTransactionHash(blockResult)
+        }
 
         return EthBlock.Block(
             blockResult.number,
@@ -345,7 +346,7 @@ class EmbeddedEthereum(
             blockResult.withdrawalsRoot,
             blockResult.withdrawals?.map { withdrawalParameter ->
                 toWithdrawal(withdrawalParameter)
-            }?.toList()
+            }?.toList(),
         )
     }
 
@@ -383,8 +384,8 @@ class EmbeddedEthereum(
     fun ethGetBlockTransactionCountByNumber(blockNumber: Long): String {
         return Numeric.encodeQuantity(
             BigInteger.valueOf(
-                blockchainQueries.getTransactionCount(blockNumber).get().toLong()
-            )
+                blockchainQueries.getTransactionCount(blockNumber).get().toLong(),
+            ),
         )
     }
 
@@ -414,7 +415,7 @@ private fun wTransaction.asCallParameter(): CallParameter {
             Long.MAX_VALUE,
             Wei.ZERO,
             Wei.ZERO,
-            Bytes.fromHexString(data)
+            Bytes.fromHexString(data),
         )
     }
 }

@@ -12,19 +12,22 @@
  */
 package org.web3j.evm
 
+import org.hyperledger.besu.evm.EVM
 import org.hyperledger.besu.evm.frame.MessageFrame
+import org.hyperledger.besu.evm.operation.Operation
 import org.web3j.evm.utils.NullReader
 import java.io.BufferedReader
 import java.io.File
 import java.lang.StringBuilder
-import org.hyperledger.besu.evm.EVM
-import org.hyperledger.besu.evm.operation.Operation
 
 data class PassthroughTracerContext(val source: String = "", val filePath: String? = null, val firstSelectedLine: Int? = null, val firstSelectedOffset: Int? = null)
 
-class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(metaFile, BufferedReader(
-    NullReader()
-)) {
+class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity")) : ConsoleDebugTracer(
+    metaFile,
+    BufferedReader(
+        NullReader(),
+    ),
+) {
     private var passthroughTracerContext: PassthroughTracerContext = PassthroughTracerContext()
 
     fun lastContext() = passthroughTracerContext
@@ -37,7 +40,7 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
     fun traceExecution(
         messageFrame: MessageFrame,
         evm: EVM,
-        executeOperation: Operation
+        executeOperation: Operation,
     ) {
         if (metaFile != null && metaFile.exists()) {
             val (sourceMapElement, sourceFile) = sourceAtMessageFrame(messageFrame)
@@ -45,8 +48,9 @@ class PassthroughTracer(metaFile: File? = File("build/resources/main/solidity"))
 
             val sb = StringBuilder()
 
-            if (sourceMapElement != null) sb.append("At solidity source location ${sourceMapElement.sourceFileByteOffset}:${sourceMapElement.lengthOfSourceRange}:${sourceMapElement.sourceIndex}:")
-            else sb.append("At unknown solidity source location:")
+            if (sourceMapElement != null) {
+                sb.append("At solidity source location ${sourceMapElement.sourceFileByteOffset}:${sourceMapElement.lengthOfSourceRange}:${sourceMapElement.sourceIndex}:")
+            } else sb.append("At unknown solidity source location:")
 
             sb.append('\n')
             sb.append('\n')

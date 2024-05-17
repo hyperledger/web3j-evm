@@ -12,7 +12,7 @@
  */
 package org.web3j.evm.entity.source
 
-import java.util.SortedMap
 import java.util.Collections
+import java.util.SortedMap
 
 data class SourceFile(val filePath: String? = null, val sourceContent: SortedMap<Int, SourceLine> = Collections.emptySortedMap())

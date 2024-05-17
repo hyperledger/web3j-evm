@@ -4,7 +4,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'com.jfrog.bintray' version '1.8.4'
-    id 'com.diffplug.gradle.spotless' version '4.5.1'
+    id 'com.diffplug.spotless' version '6.25.0'
     id 'io.codearte.nexus-staging' version '0.21.1'
     id 'de.marcphilipp.nexus-publish' version '0.4.0'
     id 'org.jetbrains.kotlin.jvm' version '1.8.10'

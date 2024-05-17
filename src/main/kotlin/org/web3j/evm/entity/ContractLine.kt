@@ -15,5 +15,5 @@ package org.web3j.evm.entity
 data class ContractLine(
     val line: String,
     val selected: Boolean = false,
-    val offset: Int = 0
+    val offset: Int = 0,
 )
