@@ -12,13 +12,13 @@
  */
 package org.web3j.evm
 
-import java.net.URL
 import org.web3j.abi.datatypes.Address
+import java.net.URL
 
 class Configuration @JvmOverloads constructor(
     selfAddress: Address,
     val ethFund: Long,
-    val genesisFileUrl: URL? = null
+    val genesisFileUrl: URL? = null,
 ) {
     val testAddress: String = selfAddress.value
 }

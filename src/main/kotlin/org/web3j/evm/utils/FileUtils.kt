@@ -12,11 +12,11 @@
  */
 package org.web3j.evm.utils
 
+import org.web3j.evm.entity.source.SourceLine
 import java.io.BufferedReader
 import java.io.FileReader
 import java.util.SortedMap
 import java.util.TreeMap
-import org.web3j.evm.entity.source.SourceLine
 
 object FileUtils {
     fun getBaseDir(path: String): String {

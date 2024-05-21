@@ -13,18 +13,18 @@
 package org.web3j.evm.utils
 
 import com.beust.klaxon.Klaxon
-import java.io.File
-import java.util.SortedMap
-import java.util.TreeMap
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.math.min
 import org.hyperledger.besu.evm.frame.MessageFrame
 import org.web3j.evm.entity.ContractMapping
 import org.web3j.evm.entity.ContractMeta
 import org.web3j.evm.entity.source.SourceFile
 import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
+import java.io.File
+import java.util.SortedMap
+import java.util.TreeMap
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.math.min
 
 object SourceMappingUtils {
 
@@ -50,7 +50,7 @@ object SourceMappingUtils {
             .map {
                 Pair(
                     it.index,
-                    SourceFile(it.value, FileUtils.loadFile(getFileAbsolutePath(metaFile.absolutePath, it.value)))
+                    SourceFile(it.value, FileUtils.loadFile(getFileAbsolutePath(metaFile.absolutePath, it.value))),
                 )
             }
             .toMap()
@@ -147,7 +147,7 @@ object SourceMappingUtils {
 
     private fun pcSourceMap(
         sourceMapElements: List<SourceMapElement>,
-        opCodeGroups: List<String>
+        opCodeGroups: List<String>,
     ): Map<Int, SourceMapElement> {
         val mappings = HashMap<Int, SourceMapElement>()
         var location = 0
@@ -184,8 +184,8 @@ object SourceMappingUtils {
                         sourceFileByteOffset,
                         lengthOfSourceRange,
                         sourceIndex,
-                        jumpType
-                    )
+                        jumpType,
+                    ),
                 )
             }
         }
@@ -209,7 +209,7 @@ object SourceMappingUtils {
     fun findSourceNear(
         idxSource: Map<Int, SourceFile>,
         sourceMapElement: SourceMapElement,
-        bodyTransform: (key: Int, value: String) -> Pair<Int, String>
+        bodyTransform: (key: Int, value: String) -> Pair<Int, String>,
     ): SourceFile {
         val sourceFile = idxSource[sourceMapElement.sourceIndex] ?: return SourceFile()
         val sourceContent = sourceFile.sourceContent
@@ -246,10 +246,11 @@ object SourceMappingUtils {
 
         tail.entries.take(2).forEach { (lineNumber, newLine) ->
             subsection.compute(lineNumber) { _, sourceLine ->
-                if (sourceLine == null)
+                if (sourceLine == null) {
                     SourceLine(newLine)
-                else
+                } else {
                     SourceLine(sourceLine.line + newLine, sourceLine.selected, sourceLine.offset)
+                }
             }
         }
 
@@ -286,7 +287,7 @@ object SourceMappingUtils {
         metaFile: File?,
         lastSourceFile: SourceFile,
         byteCodeContractMapping: java.util.HashMap<Pair<String, Boolean>, ContractMapping>,
-        sourceFileBodyTransform: (key: Int, value: String) -> Pair<Int, String>
+        sourceFileBodyTransform: (key: Int, value: String) -> Pair<Int, String>,
     ): Pair<SourceMapElement?, SourceFile> {
         val pc = messageFrame.pc
         val contractCreation = MessageFrame.Type.CONTRACT_CREATION == messageFrame.type
@@ -298,14 +299,14 @@ object SourceMappingUtils {
             loadContractMapping(
                 metaFile,
                 contractCreation,
-                bytecode
+                bytecode,
             )
         }
 
         val sourceFileSelection = findSourceNear(
             idxSource,
             pcSourceMappings[pc] ?: return Pair(pcSourceMappings[pc], sourceFile),
-            sourceFileBodyTransform
+            sourceFileBodyTransform,
         )
 
         if (sourceFileSelection.sourceContent.isNotEmpty()) {
@@ -314,7 +315,9 @@ object SourceMappingUtils {
 
         val outputSourceFile = if (sourceFile.sourceContent.isEmpty()) {
             SourceFile(sourceContent = sortedMapOf(0 to SourceLine("No source available")))
-        } else sourceFile
+        } else {
+            sourceFile
+        }
 
         return Pair(pcSourceMappings[pc], outputSourceFile)
     }

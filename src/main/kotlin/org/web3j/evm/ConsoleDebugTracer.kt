@@ -12,14 +12,6 @@
  */
 package org.web3j.evm
 
-import java.io.BufferedReader
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.util.SortedMap
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
 import org.hyperledger.besu.evm.frame.ExceptionalHaltReason
 import org.hyperledger.besu.evm.frame.MessageFrame
 import org.hyperledger.besu.evm.operation.Operation.OperationResult
@@ -30,6 +22,14 @@ import org.web3j.evm.entity.source.SourceLine
 import org.web3j.evm.entity.source.SourceMapElement
 import org.web3j.evm.utils.SourceMappingUtils
 import org.web3j.utils.Numeric
+import java.io.BufferedReader
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.util.SortedMap
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 open class ConsoleDebugTracer(protected val metaFile: File?, private val reader: BufferedReader) : OperationTracer {
     private val operations = ArrayList<String>()
@@ -55,7 +55,8 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
         ANSI_PURPLE("\u001B[35m"),
         ANSI_CYAN("\u001B[36m"),
         ANSI_WHITE("\u001B[37m"),
-        CLEAR("\u001b[H\u001b[2J");
+        CLEAR("\u001b[H\u001b[2J"),
+        ;
 
         override fun toString(): String {
             return escapeSequence
@@ -63,9 +64,12 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
     }
 
     @JvmOverloads
-    constructor(metaFile: File? = File("build/resources/main/solidity"), stdin: InputStream = System.`in`) : this(metaFile, BufferedReader(
-        InputStreamReader(stdin)
-    ))
+    constructor(metaFile: File? = File("build/resources/main/solidity"), stdin: InputStream = System.`in`) : this(
+        metaFile,
+        BufferedReader(
+            InputStreamReader(stdin),
+        ),
+    )
 
     protected fun sourceAtMessageFrame(messageFrame: MessageFrame): Pair<SourceMapElement?, SourceFile> {
         val sourceFileBodyTransform = fun(key: Int, value: String): Pair<Int, String> = Pair(key, "${TERMINAL.ANSI_YELLOW}${value}${TERMINAL.ANSI_RESET}")
@@ -75,7 +79,7 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             metaFile,
             lastSourceFile,
             byteCodeContractMapping,
-            sourceFileBodyTransform
+            sourceFileBodyTransform,
         )
     }
 
@@ -90,15 +94,18 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 } else {
                     return@map it.value.line
                 }
-        }.toList()
+            }.toList()
     }
 
     private fun isBreakPointActive(filePath: String?, activeLines: Set<Int>): Boolean {
-        val relevantBreakPoints = if (filePath != null) breakPoints
-            .entries
-            .filter { filePath.endsWith(it.key) }
-            .flatMap { it.value }
-        else return false
+        val relevantBreakPoints = if (filePath != null) {
+            breakPoints
+                .entries
+                .filter { filePath.endsWith(it.key) }
+                .flatMap { it.value }
+        } else {
+            return false
+        }
 
         return activeLines.any { relevantBreakPoints.contains(it) }
     }
@@ -113,9 +120,9 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                 breakPoints.clear()
             }
             "list" -> {
-                if (breakPoints.values.none { it.isNotEmpty() })
+                if (breakPoints.values.none { it.isNotEmpty() }) {
                     commandOutputs.add("${TERMINAL.ANSI_CYAN}No active breakpoints${TERMINAL.ANSI_RESET}")
-                else
+                } else
                     commandOutputs.add("${TERMINAL.ANSI_CYAN}Active breakpoints: ${breakPoints.entries.filter { it.value.isNotEmpty() }.sortedBy { it.key }.joinToString { it.key + ": " + it.value.sorted() }}${TERMINAL.ANSI_RESET}")
             }
             else -> {
@@ -328,11 +335,13 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
             }
 
             "--> " +
-                    TERMINAL.ANSI_YELLOW + "[enter]" + TERMINAL.ANSI_RESET + " = next section, " +
-                    nextSection +
-                    TERMINAL.ANSI_RED + "abort" + TERMINAL.ANSI_RESET + " = terminate, " +
-                    TERMINAL.ANSI_YELLOW + "help" + TERMINAL.ANSI_RESET + " = options "
-        } else ""
+                TERMINAL.ANSI_YELLOW + "[enter]" + TERMINAL.ANSI_RESET + " = next section, " +
+                nextSection +
+                TERMINAL.ANSI_RED + "abort" + TERMINAL.ANSI_RESET + " = terminate, " +
+                TERMINAL.ANSI_YELLOW + "help" + TERMINAL.ANSI_RESET + " = options "
+        } else {
+            ""
+        }
 
         sb.append(opCount)
         sb.append(options)
@@ -374,8 +383,9 @@ open class ConsoleDebugTracer(protected val metaFile: File?, private val reader:
                     throw ExceptionalHaltException(ExceptionalHaltReason.NONE)
                 }
                 input.trim().lowercase() == "next" -> {
-                    if (breakPoints.values.any { it.isNotEmpty() }) skipOperations.set(Int.MAX_VALUE)
-                    else {
+                    if (breakPoints.values.any { it.isNotEmpty() }) {
+                        skipOperations.set(Int.MAX_VALUE)
+                    } else {
                         commandOutputs.add("${TERMINAL.ANSI_CYAN}No breakpoints found${TERMINAL.ANSI_RESET}")
                         return nextOption(messageFrame, true)
                     }

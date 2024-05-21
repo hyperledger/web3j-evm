@@ -309,13 +309,13 @@ class EmbeddedWeb3jService(configuration: Configuration, operationTracer: Operat
     override fun <T : Notification<*>> subscribe(
         request: Request<*, *>,
         unsubscribeMethod: String,
-        responseType: Class<T>
+        responseType: Class<T>,
     ): Flowable<T> {
         throw UnsupportedOperationException(
             String.format(
                 "Service %s does not support subscriptions",
-                this.javaClass.simpleName
-            )
+                this.javaClass.simpleName,
+            ),
         )
     }
 
