@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* Fix gradle build run[#]()
+* Fix gradle build run [#112](https://github.com/hyperledger/web3j-evm/pull/112)
 
 ### Features
 
