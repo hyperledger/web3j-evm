@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* 
+* Removed jfrog bintray plugin [#114](https://github.com/hyperledger/web3j-evm/pull/114)
 
 ### Features
 

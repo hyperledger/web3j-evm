@@ -1,15 +1,8 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-}
-
 plugins {
     id 'java'
     id 'maven-publish'
     id 'idea'
     id 'jacoco'
-    id 'com.jfrog.bintray' version '1.8.5'
     id 'com.diffplug.spotless' version '6.25.0'
     id 'io.codearte.nexus-staging' version '0.30.0'
     id 'de.marcphilipp.nexus-publish' version '0.4.0'
@@ -34,7 +27,6 @@ ext {
 
 apply {
     [
-        'bintray',
         'jacoco',
         'java',
         'javadoc',
@@ -97,11 +89,6 @@ compileTestKotlin {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        //failOnVersionConflict()
-    }
-}
 
 tasks.named("spotlessKotlin").configure { dependsOn("compileKotlin", "spotlessJava", "spotlessGroovyGradle", "processTestResources") }
 tasks.named("spotlessJava").configure { dependsOn("compileTestJava", "compileTestKotlin", "compileKotlin", "compileTestKotlin", "spotlessGroovyGradle", "processTestResources") }
