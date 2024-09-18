@@ -24,12 +24,11 @@ to do this.
 ```groovy
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
-    implementation "org.web3j:core:4.12.1"
-    implementation "org.web3j:web3j-evm:4.12.1"
+    implementation "org.web3j:core:4.12.2"
+    implementation "org.web3j:web3j-evm:4.12.2"
 }
 ```
 
